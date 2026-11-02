@@ -34,4 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
-        with: { context: apps/zeitly, push: false, tags: zeitly:ci, build-args: GIT_SHA=${{ github.sha }} }
+        with:
+          context: apps/zeitly
+          push: false
+          tags: zeitly:ci
+          build-args: GIT_SHA=${{ github.sha }}

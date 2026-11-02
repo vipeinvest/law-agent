@@ -2,8 +2,9 @@
  * Production seed (idempotent): the two real tenants for the pilot.
  *   1. MALELU AI  – Peter Vitzthum (owner, office@malelu.io) + vipeinvestag@gmail.com (admin)
  *   2. STEINERfood GmbH – Geschäftsführung Inge Monika Steiner & Matthias Steiner (owner, inactive placeholder
- *      addresses until confirmed), Manuela Behr (admin, first employee) – receives the onboarding questionnaire
- *      and the login invitation automatically on first start (ZEITLY_SEED=production).
+ *      addresses until confirmed), Manuela Behr (admin, first employee).
+ * NO mails are sent by default (Peter, 02.11.2026: nothing goes out to STEINERfood before the pilot is agreed).
+ * Invitations are sent later by hand from Admin → Mitarbeiter (or once with ZEITLY_SEED_SEND=1).
  * Re-running never overwrites existing rows and never sends a second invitation.
  */
 import type { Db, DbClient } from './client';

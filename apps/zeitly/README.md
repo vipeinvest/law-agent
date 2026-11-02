@@ -33,7 +33,7 @@ pnpm e2e             # Playwright gegen den Production-Build im Demo-Modus
 pnpm check           # typecheck + lint + test + build
 ```
 
-Gegen echtes Postgres: `.env` mit `DATABASE_URL` (siehe `.env.example`); Migrationen laufen automatisch beim Start (`zt_migrations`). Erststart in Produktion mit `ZEITLY_SEED=production` legt die Mandanten MALELU AI und STEINERfood GmbH samt Geschäftsführung an und schickt Manuela Behr Fragebogen-Link und Zugangs-Einladung (idempotent, nur einmal).
+Gegen echtes Postgres: `.env` mit `DATABASE_URL` (siehe `.env.example`); Migrationen laufen automatisch beim Start (`zt_migrations`). Erststart in Produktion mit `ZEITLY_SEED=production` legt die Mandanten MALELU AI und STEINERfood GmbH samt Geschäftsführung an (idempotent, ohne Mailversand; Einladungen später von Hand aus dem Admin-Bereich).
 
 ## Struktur
 

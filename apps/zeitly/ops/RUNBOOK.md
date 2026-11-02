@@ -29,7 +29,7 @@ cp .env.example .env && nano .env
 #   BACKUP_PASSPHRASE = openssl rand -base64 32   (SICHER ABLEGEN – ohne sie sind Backups wertlos)
 #   RESEND_API_KEY = aus Resend (gleicher Key wie HostStatement/Fibuly)
 #   APP_URL=https://zeitly.malelu.io, MAIL_FROM="Zeitly <notify@malelu.io>"
-#   ZEITLY_SEED=production  (legt MALELU AI + STEINERfood GmbH an; Manuela Behr bekommt Fragebogen + Zugang per Mail)
+#   ZEITLY_SEED=production  (legt MALELU AI + STEINERfood GmbH an; KEINE Mails – ZEITLY_SEED_SEND bleibt 0)
 #   ANTHROPIC_API_KEY = optional (Dokument-Extraktion im Onboarding, KI-Einordnung im Prüfbericht)
 docker network inspect traefik >/dev/null || docker network create traefik
 export GIT_SHA=$(git rev-parse --short HEAD)
@@ -44,9 +44,9 @@ Das Schema wurde bereits per Migration im Supabase-Projekt angelegt (`zeitly_000
 | Mandant | Login-URL | Personen |
 | --- | --- | --- |
 | MALELU AI (`malelu`) | https://zeitly.malelu.io/login?org=malelu | Peter Vitzthum – Inhaber (office@malelu.io), Admin (vipeinvestag@gmail.com) |
-| STEINERfood GmbH (`steinerfood`) | https://zeitly.malelu.io/login?org=steinerfood | Inge Monika Steiner & Matthias Steiner – Inhaber (Platzhalter-Adressen `inge.steiner@` / `matthias.steiner@steinerfood.com`, **inaktiv** bis bestätigt → Admin → Mitarbeiter → aktivieren/E-Mail korrigieren); Manuela Behr – Admin + erste Mitarbeiterin, erhält automatisch Fragebogen-Link (14 Tage) und Zugangs-Einladung |
+| STEINERfood GmbH (`steinerfood`) | https://zeitly.malelu.io/login?org=steinerfood | Inge Monika Steiner & Matthias Steiner – Inhaber (Platzhalter-Adressen `inge.steiner@` / `matthias.steiner@steinerfood.com`, **inaktiv** bis bestätigt → Admin → Mitarbeiter → aktivieren/E-Mail korrigieren); Manuela Behr – Admin + erste Mitarbeiterin, **ohne** automatische Mail; Fragebogen-Link und Zugangs-Einladung schickt Peter erst nach Abstimmung mit STEINERfood von Hand (Admin → Mitarbeiter → Person → Onboarding → „Link senden“ bzw. Einladung) |
 
-Der Seed ist idempotent: vorhandene Mandanten/Personen werden nie überschrieben, Mails nur beim ersten Anlegen verschickt. Weitere Mitarbeiter:innen legt Manuela selbst an (Admin → Mitarbeiter → Neu, „Fragebogen senden“ ist vorausgewählt).
+Der Seed ist idempotent: vorhandene Mandanten/Personen werden nie überschrieben; Mails gehen nur mit `ZEITLY_SEED_SEND=1` beim ersten Anlegen raus (Standard: aus). **Regel (Peter, 02.11.2026): Nichts an die STEINERfood-Geschäftsführung oder Manuela senden, bevor der Pilot ausgemacht ist.** Weitere Mitarbeiter:innen legt Manuela selbst an (Admin → Mitarbeiter → Neu, „Fragebogen senden“ ist vorausgewählt).
 
 ## 3. Deploy eines Updates
 
