@@ -5,9 +5,15 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Skip quietly (no failure mail) while the VPS secrets are not configured.
+    env:
+      HAS_VPS: ${{ secrets.VPS_HOST != '' && secrets.VPS_SSH_KEY != '' }}
     steps:
       - uses: actions/checkout@v4
+      - if: env.HAS_VPS != 'true'
+        run: echo "VPS_HOST / VPS_SSH_KEY secrets not set – deploy skipped."
       - name: SSH Deploy
+        if: env.HAS_VPS == 'true'
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}

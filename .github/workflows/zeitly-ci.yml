@@ -1,9 +1,14 @@
 name: Zeitly CI
+# One run per change: pull requests, plus pushes to main. (push on feature branches would double every run and every failure mail.)
 on:
-  push:
-    paths: ['apps/zeitly/**', '.github/workflows/zeitly-ci.yml']
   pull_request:
-    paths: ['apps/zeitly/**']
+    paths: ['apps/zeitly/**', '.github/workflows/zeitly-ci.yml', '.github/workflows/zeitly-deploy.yml']
+  push:
+    branches: [main]
+    paths: ['apps/zeitly/**', '.github/workflows/zeitly-ci.yml']
+concurrency:
+  group: zeitly-ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   check:
     # ubuntu-latest moved to 26.04, for which Playwright 1.56 has no system-dependency recipe
