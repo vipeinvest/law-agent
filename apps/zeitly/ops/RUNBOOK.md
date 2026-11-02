@@ -50,6 +50,10 @@ Der Seed ist idempotent: vorhandene Mandanten/Personen werden nie überschrieben
 
 ## 3. Deploy eines Updates
 
+**Per GitHub Actions (empfohlen):** Actions → „Zeitly Deploy" → Run workflow (Branch wählen, Replikas 2). Nutzt dieselben Secrets wie der bestehende Deploy-Workflow (`VPS_HOST`, `VPS_USER`, `VPS_PORT`, `VPS_SSH_KEY`); beim allerersten Lauf kann der komplette Inhalt der `.env` als Secret `ZEITLY_ENV` hinterlegt werden, er wird nur geschrieben, wenn auf dem VPS noch keine `.env` liegt. Der Workflow klont/aktualisiert `/opt/law-agent`, legt `/opt/zeitly` an, baut das Image, startet `web` (2×) und `cron` und prüft `/api/health`.
+
+**Per SSH (manuell):**
+
 ```bash
 ssh root@<traefik-vps> 'cd /opt/zeitly && ./ops/deploy.sh'
 ```
