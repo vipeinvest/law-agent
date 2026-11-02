@@ -1,0 +1,79 @@
+# Zeitly on the MALELU Traefik VPS.
+# Prerequisites: external docker network "traefik" with a Traefik v2/v3 instance that has the
+# entrypoint "websecure" and a Let's Encrypt resolver named "letsencrypt" (same as hoststatement/fibuly).
+# Usage: cp .env.example .env && edit; docker compose up -d --build --scale web=2
+name: zeitly
+services:
+  web:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+    image: zeitly:${GIT_SHA:-latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - ZEITLY_DB=postgres
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          memory: 512M
+    networks:
+      - traefik
+      - internal
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik
+      - traefik.http.routers.zeitly.rule=Host(`${ZEITLY_HOST:-zeitly.malelu.io}`)
+      - traefik.http.routers.zeitly.entrypoints=websecure
+      - traefik.http.routers.zeitly.tls=true
+      - traefik.http.routers.zeitly.tls.certresolver=letsencrypt
+      - traefik.http.services.zeitly.loadbalancer.server.port=3000
+      - traefik.http.services.zeitly.loadbalancer.healthcheck.path=/api/health
+      - traefik.http.services.zeitly.loadbalancer.healthcheck.interval=15s
+      - traefik.http.services.zeitly.loadbalancer.sticky.cookie=false
+      - traefik.http.middlewares.zeitly-compress.compress=true
+      - traefik.http.routers.zeitly.middlewares=zeitly-compress
+    logging:
+      driver: json-file
+      options: { max-size: '10m', max-file: '5' }
+
+  # Daily housekeeping (retention of login codes/sessions) + encrypted logical DB backup, 30 days.
+  cron:
+    image: alpine:3.20
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - TZ=Europe/Vienna
+    volumes:
+      - ./ops/backup.sh:/ops/backup.sh:ro
+      - ./ops/housekeeping.sh:/ops/housekeeping.sh:ro
+      - zeitly-backups:/backups
+    networks:
+      - internal
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - |
+        apk add --no-cache postgresql16-client curl gnupg coreutils >/dev/null
+        echo '15 2 * * * /bin/sh /ops/backup.sh >> /backups/backup.log 2>&1' > /etc/crontabs/root
+        echo '45 3 * * * /bin/sh /ops/housekeeping.sh >> /backups/housekeeping.log 2>&1' >> /etc/crontabs/root
+        crond -f -l 6
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '3' }
+
+networks:
+  traefik:
+    external: true
+  internal: {}
+
+volumes:
+  zeitly-backups: {}
