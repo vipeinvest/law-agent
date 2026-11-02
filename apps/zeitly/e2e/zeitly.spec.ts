@@ -96,8 +96,8 @@ test('manager: approves a submitted month and exports work', async ({ page, requ
     expect(res.status(), url).toBe(200);
     expect((await res.body()).length).toBeGreaterThan(1000);
   }
+  page.on('dialog', (d) => d.accept());
   await page.getByRole('button', { name: 'Jetzt senden' }).click();
-  page.once('dialog', (d) => d.accept());
   await expect(page.getByText(/Gesendet an/)).toBeVisible({ timeout: 30000 });
   void request;
 });

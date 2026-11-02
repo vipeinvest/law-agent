@@ -199,7 +199,7 @@ export async function listOrgAbsences(db: DbClient, orgId: string, from: ISODate
 export async function insertAbsence(db: DbClient, orgId: string, userId: string, actorId: string, a: { dateFrom: ISODate; dateTo: ISODate; type: AbsenceType; halfDay: boolean; note: string | null; status: AbsenceRow['status'] }): Promise<AbsenceRow> {
   const { rows } = await db.query<AbsenceRow>(
     `insert into zt_absences (org_id, user_id, date_from, date_to, type, half_day, note, status, created_by, decided_by, decided_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9, case when $8 = 'approved' then $9 else null end, case when $8 = 'approved' then now() else null end) returning *`,
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9::uuid, case when $8::text = 'approved' then $9::uuid else null end, case when $8::text = 'approved' then now() else null end) returning *`,
     [orgId, userId, a.dateFrom, a.dateTo, a.type, a.halfDay, a.note, a.status, actorId],
   );
   return rows[0];
