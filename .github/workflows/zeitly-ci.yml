@@ -6,7 +6,8 @@ on:
     paths: ['apps/zeitly/**']
 jobs:
   check:
-    runs-on: ubuntu-latest
+    # ubuntu-latest moved to 26.04, for which Playwright 1.56 has no system-dependency recipe
+    runs-on: ubuntu-24.04
     defaults: { run: { working-directory: apps/zeitly } }
     steps:
       - uses: actions/checkout@v4
