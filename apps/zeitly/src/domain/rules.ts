@@ -61,6 +61,8 @@ export interface EvaluateInput {
   historyWeeks?: Array<{ isoWeek: string; workedMinutes: number }>;
   /** Include not-yet-approved absences in the calculation (default false). */
   includeRequestedAbsences?: boolean;
+  /** Veröffentlichte Dienstplan-Minuten je Datum; bei employment.targetMode 'plan' wird daraus das Tagessoll. */
+  plannedMinutes?: Record<ISODate, number>;
 }
 
 const ABSENCE_TYPES: AbsenceType[] = ['vacation', 'sick', 'time_comp', 'special_leave', 'care_leave', 'training', 'unpaid', 'other'];
@@ -146,7 +148,8 @@ export function evaluatePeriod(input: EvaluateInput): PeriodSummary {
     const weekday = isoWeekday(date);
     const hol = holidays.get(date);
     const employed = isEmployed(emp, date);
-    const baseTarget = employed ? dailyTargetMinutes(emp, weekday) : 0;
+    const planned = input.plannedMinutes?.[date];
+    const baseTarget = !employed ? 0 : emp.targetMode === 'plan' ? (planned ?? 0) : dailyTargetMinutes(emp, weekday);
     const absence = absenceByDay.get(date);
     const entries = byDate.get(date) ?? [];
     const violations: Violation[] = [];

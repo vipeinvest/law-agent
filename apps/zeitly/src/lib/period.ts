@@ -5,6 +5,7 @@ import type { PeriodSummary } from '@/domain/types';
 import { addDays, monthRange } from '@/domain/time';
 import { orgRules, userEmployment, type OrgRow, type UserRow } from './org';
 import { getPeriod, latestClosedPeriodBefore, listAbsences, listEntries, listProjects, toAbsence, toEntry, type PeriodRow, type ProjectRow } from './repo';
+import { listShifts } from './repo-v2';
 
 export interface EvaluatedPeriod {
   summary: PeriodSummary;
@@ -44,8 +45,18 @@ export async function evaluateMonth(db: DbClient, org: OrgRow, user: UserRow, ye
   const rules = orgRules(org);
   const employment = userEmployment(user, rules);
   const { from, to } = monthRange(year, month);
-  const [entriesRows, absenceRows] = await Promise.all([listEntries(db, org.id, user.id, addDays(from, -14), addDays(to, 7)), listAbsences(db, org.id, user.id, addDays(from, -14), addDays(to, 7))]);
+  const [entriesRows, absenceRows, shiftRows] = await Promise.all([listEntries(db, org.id, user.id, addDays(from, -14), addDays(to, 7)), listAbsences(db, org.id, user.id, addDays(from, -14), addDays(to, 7)), listShifts(db, org.id, addDays(from, -14), addDays(to, 7), user.id)]);
+  const plannedMinutes: Record<string, number> = {};
+  for (const sh of shiftRows) {
+    if (sh.status !== 'published') continue;
+    const [sh1, sm1] = sh.start_time.split(':').map(Number);
+    const [eh1, em1] = sh.end_time.split(':').map(Number);
+    let gross = eh1 * 60 + em1 - (sh1 * 60 + sm1);
+    if (gross <= 0) gross += 1440;
+    plannedMinutes[sh.date] = (plannedMinutes[sh.date] ?? 0) + Math.max(0, gross - sh.break_minutes);
+  }
   return evaluatePeriod({
+    plannedMinutes,
     userId: user.id,
     year,
     month,

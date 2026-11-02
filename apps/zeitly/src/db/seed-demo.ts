@@ -121,6 +121,24 @@ export async function seedDemo(db: Db): Promise<void> {
     for (const email of ['lukas.brandstaetter@steinerfood.com', 'sarah.mayer@steinerfood.com']) {
       await c.query(`insert into zt_periods (org_id, user_id, year, month, status, submitted_at, approved_by, approved_at, balance_start, balance_end, summary) values ($1,$2,$3,$4,'approved', now() - interval '35 days', $5, now() - interval '33 days', 0, $6, '{}')`, [org, users[email], ppy, ppm, users['nina.hofer@steinerfood.com'], email.startsWith('lukas') ? 185 : -40]);
     }
+    // roster: templates + published plan for this week, draft for next week (Sarah: plan-based target)
+    await c.query(`insert into zt_shift_templates (org_id, name, start_time, end_time, break_minutes, location, color) values ($1,'Büro früh','07:30','16:00',30,'office','#2f6b4f'), ($1,'Büro spät','09:30','18:00',30,'office','#5b6abf'), ($1,'Remote','08:00','16:30',30,'remote','#1f5f5b'), ($1,'Außendienst','06:30','15:30',30,'field','#e07a2f'), ($1,'Teilzeit vormittag','08:00','12:00',0,'office','#e8a33d')`, [org]);
+    const monday = addDays(today, -(isoWeekday(today) - 1));
+    const rosterUsers: Array<[string, string, string, number, string, number[]]> = [
+      ['sarah.mayer@steinerfood.com', '08:00', '12:00', 0, 'office', [1, 2, 3, 4, 5]],
+      ['tobias.kern@steinerfood.com', '06:30', '15:30', 30, 'field', [1, 2, 3, 4, 5]],
+      ['lukas.brandstaetter@steinerfood.com', '08:00', '16:30', 30, 'remote', [1, 2, 3, 4, 5]],
+      ['nina.hofer@steinerfood.com', '07:30', '16:00', 30, 'office', [1, 2, 3, 4, 5]],
+    ];
+    for (const week of [0, 7]) {
+      for (const [email, st, en, br, loc, wd] of rosterUsers) {
+        for (const d of wd) {
+          const date = addDays(monday, week + d - 1);
+          await c.query(`insert into zt_shifts (org_id, user_id, date, start_time, end_time, break_minutes, location, status, created_by) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, [org, users[email], date, st, en, br, loc, week === 0 ? 'published' : 'draft', users['nina.hofer@steinerfood.com']]);
+        }
+      }
+    }
+    await c.query(`update zt_users set employment = employment || '{"targetMode":"plan","autoAdoptPlan":true}'::jsonb where id = $1`, [users['sarah.mayer@steinerfood.com']]);
     // running timer for Manuela
     await c.query(`insert into zt_timers (user_id, org_id, started_at, type, location, project_id, note) values ($1,$2, now() - interval '2 hours 17 minutes', 'work', 'remote', $3, 'Angebote LEH Q1')`, [users['m.behr@steinerfood.com'], org, projects['VERTRIEB']]);
 

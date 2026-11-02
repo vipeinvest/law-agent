@@ -20,6 +20,7 @@ export function EmployeeForm({ initial, managers, isOwner, selfId }: { initial: 
   const router = useRouter();
   const [v, setV] = useState(initial);
   const [sendInvite, setSendInvite] = useState(true);
+  const [sendOnboarding, setSendOnboarding] = useState(true);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const emp = v.employment;
@@ -30,7 +31,7 @@ export function EmployeeForm({ initial, managers, isOwner, selfId }: { initial: 
     e.preventDefault();
     setBusy(true);
     setMsg(null);
-    const body = { ...(v.id ? { id: v.id, active: v.active } : { sendInvite }), email: v.email, name: v.name, role: v.role, personnelNo: v.personnelNo || null, managerId: v.managerId || null, employment: { ...emp, startDate: emp.startDate || null, endDate: emp.endDate || null } };
+    const body = { ...(v.id ? { id: v.id, active: v.active } : { sendInvite, sendOnboarding }), email: v.email, name: v.name, role: v.role, personnelNo: v.personnelNo || null, managerId: v.managerId || null, employment: { ...emp, startDate: emp.startDate || null, endDate: emp.endDate || null } };
     const res = await fetch('/api/admin/users', { method: v.id ? 'PATCH' : 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const d = await res.json().catch(() => ({}));
     setBusy(false);
@@ -132,15 +133,34 @@ export function EmployeeForm({ initial, managers, isOwner, selfId }: { initial: 
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={!!emp.azgExempt} onChange={(e) => setEmp({ azgExempt: e.target.checked })} /> Vom AZG ausgenommen (leitende Angestellte, § 1 Abs 2 Z 8) – keine Grenzwertprüfung
               </label>
+              <div className="pt-2 border-t border-line mt-2">
+                <div className="font-medium mb-1">Dienstplan</div>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={emp.targetMode === 'plan'} onChange={(e) => setEmp({ targetMode: e.target.checked ? 'plan' : 'contract' })} /> Soll-Zeit aus veröffentlichtem Dienstplan (statt Vertragsmuster) – für Teilzeit mit wechselnden Tagen
+                </label>
+                <label className="flex items-center gap-2 mt-1">
+                  <input type="checkbox" checked={!!emp.autoAdoptPlan} onChange={(e) => setEmp({ autoAdoptPlan: e.target.checked })} /> Geplante Schichten nachts automatisch als Ist übernehmen, wenn nichts gebucht wurde (Negativzeiterfassung; Korrektur durch MA bleibt möglich)
+                </label>
+              </div>
             </div>
           </div>
         </section>
       )}
 
       {!v.id && (
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={sendInvite} onChange={(e) => setSendInvite(e.target.checked)} /> Einladungs-E-Mail mit Anleitung senden
-        </label>
+        <div className="space-y-1 text-sm">
+          <label className="flex items-start gap-2">
+            <input type="checkbox" className="mt-1" checked={sendOnboarding} onChange={(e) => setSendOnboarding(e.target.checked)} />
+            <span>
+              <strong>Onboarding-Fragebogen senden</strong> (empfohlen): Die Person ergänzt Stammdaten für ÖGK-Anmeldung und Lohnverrechnung selbst – per Foto von Ausweis/e-card/Meldezettel, Spracheingabe, Dokumenten-Upload. Nach dem Absenden erhält sie automatisch ihren Zugang zur Zeiterfassung.
+            </span>
+          </label>
+          {!sendOnboarding && (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={sendInvite} onChange={(e) => setSendInvite(e.target.checked)} /> Nur Einladungs-E-Mail mit Login-Anleitung senden
+            </label>
+          )}
+        </div>
       )}
       {msg && <p className={`text-sm ${msg.ok ? 'text-emerald-700' : 'text-red-700'}`}>{msg.text}</p>}
       <button className="btn-primary" disabled={busy}>

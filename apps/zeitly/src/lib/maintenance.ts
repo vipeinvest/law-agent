@@ -16,6 +16,7 @@ export interface HousekeepingResult {
   sessions: number;
   mailLog: number;
   importJobs: number;
+  autoAdopted: number;
   at: string;
 }
 
@@ -25,7 +26,13 @@ export async function runHousekeeping(db: DbClient): Promise<HousekeepingResult>
   const sessions = await del(`delete from zt_sessions where expires_at < now() - interval '1 day' or last_seen_at < now() - ($1 || ' days')::interval`, [String(RETENTION.sessionsDays)]);
   const mailLog = await del(`delete from zt_mail_log where created_at < now() - ($1 || ' days')::interval`, [String(RETENTION.mailLogDays)]);
   const importJobs = await del(`delete from zt_import_jobs where created_at < now() - ($1 || ' days')::interval`, [String(RETENTION.importJobsDays)]);
-  return { loginCodes, sessions, mailLog, importJobs, at: new Date().toISOString() };
+  let autoAdopted = 0;
+  try {
+    autoAdopted = (await (await import('./roster')).autoAdoptPlans(db)).created;
+  } catch (e) {
+    console.warn('[housekeeping] auto-adopt failed', e instanceof Error ? e.message : e);
+  }
+  return { loginCodes, sessions, mailLog, importJobs, autoAdopted, at: new Date().toISOString() };
 }
 
 export interface RetentionPreview {

@@ -292,3 +292,14 @@ describe('gaps and exemptions', () => {
     expect(r.workedDays).toBe(1);
   });
 });
+
+describe('plan-based target', () => {
+  it('uses published shifts as daily target when targetMode is plan', () => {
+    const r = evalMonth([entry('2026-11-02', '08:00', '14:00', 0)], [], { employment: { ...DEFAULT_EMPLOYMENT, targetMode: 'plan' }, plannedMinutes: { '2026-11-02': 360, '2026-11-07': 240 } });
+    expect(r.days.find((d) => d.date === '2026-11-02')!.targetMinutes).toBe(360);
+    expect(r.days.find((d) => d.date === '2026-11-07')!.targetMinutes).toBe(240); // Saturday planned
+    expect(r.days.find((d) => d.date === '2026-11-03')!.targetMinutes).toBe(0);
+    expect(r.targetMinutes).toBe(600);
+    expect(r.balanceEndMinutes).toBe(360 - 600);
+  });
+});

@@ -2,6 +2,7 @@ import { requireSession, sessionContext } from '@/lib/auth';
 import { PageHeader } from '@/components/ui';
 import { SettingsForm } from './SettingsForm';
 import { RetentionPanel } from './RetentionPanel';
+import { ApiKeysPanel } from './ApiKeysPanel';
 import { DEFAULT_PAYROLL_CODES, payrollCodes } from '@/lib/export/payroll-xlsx';
 import { env } from '@/lib/env';
 
@@ -21,6 +22,9 @@ export default async function SettingsPage() {
         defaultCodes={DEFAULT_PAYROLL_CODES}
         loginUrl={`${env.appUrl}/login?org=${encodeURIComponent(s.org.slug)}`}
       />
+      <div className="mt-6">
+        <ApiKeysPanel isOwner={s.user.role === 'owner'} apiBase={env.appUrl} timeZone={s.org.time_zone} />
+      </div>
       <div className="mt-6">
         <RetentionPanel isOwner={s.user.role === 'owner'} />
       </div>

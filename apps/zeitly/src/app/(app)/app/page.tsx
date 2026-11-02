@@ -9,6 +9,9 @@ import { formatMinutes, isoWeekKey, toISODate } from '@/domain/time';
 import { fmtDateLong, fmtH, fmtMonth, fmtTime, LOCATION_LABELS, TYPE_LABELS } from '@/lib/format';
 import { Badge, Card, SeverityBadge, Stat } from '@/components/ui';
 import { TimerCard } from './TimerCard';
+import { PlanAdopt } from '@/components/PlanAdopt';
+import { planForDays } from '@/lib/roster';
+import { addDays } from '@/domain/time';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +40,10 @@ export default async function HomePage() {
   const todaysViolations = day?.violations.filter((v) => v.severity !== 'info') ?? [];
   const monthErrors = current.summary.violations.filter((v) => v.severity === 'error');
   const greeting = new Date().getUTCHours() + 1 < 11 ? 'Guten Morgen' : new Date().getUTCHours() + 1 < 17 ? 'Hallo' : 'Guten Abend';
+  const plan = await planForDays(db, s.org, s.user.id, addDays(today, -7), addDays(today, 7), current.summary.days.flatMap((d) => d.entries.map((e) => ({ date: d.date, type: e.type }))));
+  const todayPlan = plan[today];
+  const nextPlanDate = Object.keys(plan).filter((d) => d > today).sort()[0];
+  const openPast = Object.entries(plan).filter(([d, p]) => d < today && p.adoptable).length;
 
   return (
     <div className="space-y-4">
@@ -48,6 +55,40 @@ export default async function HomePage() {
       </div>
 
       <TimerCard initial={ts} projects={projects.map((p) => ({ id: p.id, code: p.code, name: p.name, color: p.color }))} recordMode={employment.recordMode} todayDate={today} hints={hints} workedTodayMinutes={day?.workedMinutes ?? 0} />
+
+      {(todayPlan || nextPlanDate || openPast > 0) && (
+        <Card title="Dienstplan">
+          <div className="text-sm space-y-2">
+            {todayPlan ? (
+              <div className="flex items-center justify-between gap-3">
+                <span className="tabular-nums">
+                  Heute geplant: <strong>{todayPlan.start} – {todayPlan.end}</strong> · {LOCATION_LABELS[todayPlan.location]}
+                  {todayPlan.breakMinutes > 0 && ` · Pause ${todayPlan.breakMinutes} min`}
+                  {todayPlan.note && <span className="text-muted"> · {todayPlan.note}</span>}
+                </span>
+                {todayPlan.adopted ? <Badge tone="green">gebucht</Badge> : todayPlan.adoptable ? <PlanAdopt from={today} small label="Wie geplant übernehmen" /> : <Badge tone="gray">läuft</Badge>}
+              </div>
+            ) : (
+              <p className="text-muted">Heute keine Schicht geplant.</p>
+            )}
+            {nextPlanDate && plan[nextPlanDate] && (
+              <p className="text-muted">
+                Nächste Schicht: {fmtDateLong(nextPlanDate)}, {plan[nextPlanDate].start} – {plan[nextPlanDate].end} · {LOCATION_LABELS[plan[nextPlanDate].location]}
+              </p>
+            )}
+            {openPast > 0 && (
+              <div className="flex items-center justify-between gap-3">
+                <span>
+                  {openPast} geplante {openPast === 1 ? 'Tag' : 'Tage'} der letzten Woche ohne Buchung.
+                </span>
+                <Link href={`/app/woche?d=${addDays(today, -7)}`} className="btn-ghost btn-sm">
+                  Ansehen
+                </Link>
+              </div>
+            )}
+          </div>
+        </Card>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Stat label="Heute" value={fmtH(workedToday)} hint={`Soll ${fmtH(day?.targetMinutes ?? 0)}`} />
@@ -121,7 +162,7 @@ export default async function HomePage() {
                       {e.note && <span>· {e.note}</span>}
                     </div>
                   </div>
-                  <Badge tone="gray">{e.source === 'timer' ? 'Stempel' : e.source === 'import' ? 'Import' : 'Manuell'}</Badge>
+                  <Badge tone="gray">{e.source === 'timer' ? 'Stempel' : e.source === 'import' ? 'Import' : e.source === 'plan' ? 'Plan' : 'Manuell'}</Badge>
                 </li>
               );
             })}

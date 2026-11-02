@@ -29,17 +29,24 @@ cp .env.example .env && nano .env
 #   BACKUP_PASSPHRASE = openssl rand -base64 32   (SICHER ABLEGEN – ohne sie sind Backups wertlos)
 #   RESEND_API_KEY = aus Resend (gleicher Key wie HostStatement/Fibuly)
 #   APP_URL=https://zeitly.malelu.io, MAIL_FROM="Zeitly <notify@malelu.io>"
-#   BOOTSTRAP_ORG_SLUG=steinerfood  BOOTSTRAP_ORG_NAME="STEINERfood GmbH"
-#   BOOTSTRAP_OWNER_EMAIL=m.behr@steinerfood.com  BOOTSTRAP_OWNER_NAME="Manuela Behr"
+#   ZEITLY_SEED=production  (legt MALELU AI + STEINERfood GmbH an; Manuela Behr bekommt Fragebogen + Zugang per Mail)
+#   ANTHROPIC_API_KEY = optional (Dokument-Extraktion im Onboarding, KI-Einordnung im Prüfbericht)
 docker network inspect traefik >/dev/null || docker network create traefik
 export GIT_SHA=$(git rev-parse --short HEAD)
 docker compose up -d --build --scale web=2
 curl -fsS https://zeitly.malelu.io/api/health
 ```
 
-Das Schema wurde bereits per Migration im Supabase-Projekt angelegt (`zeitly_0001_init`); die App prüft beim Start `zt_migrations` und spielt neue Migrationen automatisch ein.
+Das Schema wurde bereits per Migration im Supabase-Projekt angelegt (`zeitly_0001_init`, `zeitly_0002_onboarding_roster_api`); die App prüft beim Start `zt_migrations` und spielt neue Migrationen automatisch ein.
 
-Zweiten Mandanten (MALELU) anlegen: direkt in SQL (`insert into zt_orgs (slug,name) …; insert into zt_users (org_id,email,name,role) … 'owner'`) oder BOOTSTRAP-Variablen einmalig umstellen und neu starten.
+**Mandanten beim Erststart (`ZEITLY_SEED=production`, `src/db/seed-production.ts`):**
+
+| Mandant | Login-URL | Personen |
+| --- | --- | --- |
+| MALELU AI (`malelu`) | https://zeitly.malelu.io/login?org=malelu | Peter Vitzthum – Inhaber (office@malelu.io), Admin (vipeinvestag@gmail.com) |
+| STEINERfood GmbH (`steinerfood`) | https://zeitly.malelu.io/login?org=steinerfood | Inge Monika Steiner & Matthias Steiner – Inhaber (Platzhalter-Adressen `inge.steiner@` / `matthias.steiner@steinerfood.com`, **inaktiv** bis bestätigt → Admin → Mitarbeiter → aktivieren/E-Mail korrigieren); Manuela Behr – Admin + erste Mitarbeiterin, erhält automatisch Fragebogen-Link (14 Tage) und Zugangs-Einladung |
+
+Der Seed ist idempotent: vorhandene Mandanten/Personen werden nie überschrieben, Mails nur beim ersten Anlegen verschickt. Weitere Mitarbeiter:innen legt Manuela selbst an (Admin → Mitarbeiter → Neu, „Fragebogen senden“ ist vorausgewählt).
 
 ## 3. Deploy eines Updates
 
@@ -73,13 +80,20 @@ ssh root@<traefik-vps> 'cd /opt/zeitly && ./ops/deploy.sh'
 
 ## 7. Datenschutz-Automatik
 
-- Housekeeping täglich: Login-Codes > 24 h, Sitzungen > 90 Tage, Mail-Log > 1 Jahr, Import-Jobs > 1 Jahr.
+- Housekeeping täglich (Cron-Sidecar 03:45 → `POST /api/internal/housekeeping`): Login-Codes > 24 h, Sitzungen > 90 Tage, Mail-Log > 1 Jahr, Import-Jobs > 1 Jahr; außerdem **Auto-Übernahme Dienstplan** für Personen mit „automatisch übernehmen“ (veröffentlichte Schichten der letzten 7 Tage ohne Buchung → Ist-Buchung Quelle `plan`, protokolliert als `plan.auto_adopt`).
+- Onboarding-Dokumente (Ausweisfotos usw.) liegen als bytea in `zt_files` (max. 8 MB, SHA-256) – Löschung über den Löschlauf bzw. beim Löschen der Person (cascade). Zugriff nur für Admin/Inhaber und die Person selbst über den Fragebogen-Link.
 - Jährlicher Löschlauf (7 Jahre nach Jahresende, § 132 BAO): Einstellungen → „Aufbewahrung & Löschlauf" (nur Inhaber:in), mit Vorschau und Protokolleintrag.
 - Datenauskunft/Export je Mitarbeiter:in: Profil → „Meine Aufzeichnungen" (§ 26 Abs 8 AZG, Art. 15/20 DSGVO).
 
-## 8. Bekannte Grenzen (R2M-Status)
+## 8. Schnittstelle Lohnverrechnung (API v1)
+
+Dokumentation in `ops/API.md`. Schlüssel je Mandant unter Einstellungen → Schnittstelle (nur Inhaber:in); nur Hash gespeichert, Scopes pro Schlüssel, Widerruf sofort wirksam, `last_used_at` sichtbar. Für BMD/DATEV/Steuerberatung reicht in der Regel `read:payroll`.
+
+## 9. Bekannte Grenzen (R2M-Status)
 
 - Zuschlagshöhen (50 %/100 %, KV-Sonderregeln, Durchrechnungszeiträume) werden als Buckets geliefert, die Bewertung macht die Lohnverrechnung.
-- KJBG (Jugendliche) und Mutterschutz-Sonderregeln sind nicht abgebildet.
+- KJBG (Jugendliche) wird im Onboarding erkannt (Alter < 18 → Hinweis), die KJBG-Grenzwerte selbst und Mutterschutz-Sonderregeln sind im Regelwerk nicht abgebildet.
+- ÖGK-Anmeldung (ELDA) wird vorbereitet (Mindestangaben-PDF), nicht elektronisch übermittelt – das macht die Lohnverrechnung mit ihrer ELDA-Software.
+- KI-Funktionen (Extraktion, Prüfbericht-Einordnung) sind Vorschläge; verbindlich wird nur, was Mitarbeiter:in bzw. Admin bestätigt.
 - Kein Single-Sign-on, keine native App (PWA installierbar, Offline-Stempeln mit Nachsynchronisation).
 - Supabase Free-Plan hat keine Point-in-Time-Recovery → eigenes Backup ist Pflicht; für zahlende Kunden Supabase Pro (PITR) oder eigenes Projekt je Kunde empfehlen.

@@ -124,6 +124,9 @@ export function getDb(): Promise<Db> {
       if (process.env.ZEITLY_DEMO === '1') {
         const { seedDemo } = await import('./seed-demo');
         await seedDemo(db);
+      } else if (process.env.ZEITLY_SEED === 'production') {
+        const { seedProduction } = await import('./seed-production');
+        await seedProduction(db, { send: process.env.ZEITLY_SEED_SEND !== '0' });
       } else if (process.env.BOOTSTRAP_OWNER_EMAIL && process.env.BOOTSTRAP_ORG_SLUG) {
         const { bootstrap } = await import('./bootstrap');
         await bootstrap(db);

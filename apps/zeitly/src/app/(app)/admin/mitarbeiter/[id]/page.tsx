@@ -12,6 +12,9 @@ import { DayList } from '@/components/DayList';
 import { EmployeeForm } from '../EmployeeForm';
 import { PeriodActions } from '../../freigaben/Actions';
 import { AbsenceForm } from '@/app/(app)/app/abwesenheiten/AbsenceForm';
+import { OnboardingPanel } from './OnboardingPanel';
+import { ReviewButton } from './ReviewButton';
+import { loadOnboardingForAdmin } from '@/lib/onboarding';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +36,8 @@ export default async function EmployeeDetail({ params, searchParams }: { params:
   const [py, pm] = prevMonth(year, month);
   const [ny, nm] = month === 12 ? [year + 1, 1] : [year, month + 1];
   const canEditMaster = hasRole(s.user, 'admin');
-  const tab = searchParams.tab === 'stammdaten' && canEditMaster ? 'stammdaten' : 'zeiten';
+  const tab = (searchParams.tab === 'stammdaten' || searchParams.tab === 'onboarding') && canEditMaster ? searchParams.tab : 'zeiten';
+  const ob = tab === 'onboarding' ? await loadOnboardingForAdmin(db, s.org, user.id) : null;
   const managers = (await listUsers(db, s.org.id)).filter((u) => ['owner', 'admin', 'manager'].includes(u.role)).map((u) => ({ id: u.id, name: u.name }));
   const status = period?.status ?? 'open';
   const nonInfo = summary.violations.filter((v) => v.severity !== 'info');
@@ -49,14 +53,28 @@ export default async function EmployeeDetail({ params, searchParams }: { params:
               Zeiten
             </Link>
             {canEditMaster && (
-              <Link href={`/admin/mitarbeiter/${user.id}?m=${m}&tab=stammdaten`} className={`tab ${tab === 'stammdaten' ? 'tab-active' : ''}`}>
-                Stammdaten
-              </Link>
+              <>
+                <Link href={`/admin/mitarbeiter/${user.id}?m=${m}&tab=stammdaten`} className={`tab ${tab === 'stammdaten' ? 'tab-active' : ''}`}>
+                  Stammdaten
+                </Link>
+                <Link href={`/admin/mitarbeiter/${user.id}?m=${m}&tab=onboarding`} className={`tab ${tab === 'onboarding' ? 'tab-active' : ''}`}>
+                  Onboarding
+                </Link>
+              </>
             )}
           </div>
         }
       />
-      {tab === 'stammdaten' ? (
+      {tab === 'onboarding' && ob ? (
+        <OnboardingPanel
+          userId={user.id}
+          userName={user.name}
+          payrollEmail={s.org.payroll_email}
+          onboarding={ob.onboarding ? { status: ob.onboarding.status, expiresAt: ob.onboarding.expires_at, submittedAt: ob.onboarding.submitted_at } : null}
+          profile={ob.profile ? { data: ob.profile.data as Record<string, Record<string, unknown>>, completeness: ob.profile.completeness, validation: ob.profile.validation, submittedAt: ob.profile.submitted_at, reviewedAt: ob.profile.reviewed_at, sentToPayrollAt: ob.profile.sent_to_payroll_at } : null}
+          files={ob.files.map((f) => ({ id: f.id, kind: f.kind, filename: f.filename, mime: f.mime, size: f.size_bytes }))}
+        />
+      ) : tab === 'stammdaten' ? (
         <EmployeeForm initial={{ id: user.id, email: user.email, name: user.name, role: user.role, personnelNo: user.personnel_no ?? '', managerId: user.manager_id ?? '', active: user.active, employment: emp }} managers={managers} isOwner={s.user.role === 'owner'} selfId={s.user.id} />
       ) : (
         <div className="space-y-4">
@@ -75,6 +93,7 @@ export default async function EmployeeDetail({ params, searchParams }: { params:
               <a className="btn-ghost btn-sm" href={`/api/export/journal?year=${year}&month=${month}&userId=${user.id}&inline=1`} target="_blank" rel="noreferrer">
                 PDF
               </a>
+              <ReviewButton userId={user.id} year={year} month={month} />
               {user.id !== s.user.id || hasRole(s.user, 'admin') ? <PeriodActions userId={user.id} year={year} month={month} canReopen={hasRole(s.user, 'admin')} status={status} /> : null}
             </div>
           </div>

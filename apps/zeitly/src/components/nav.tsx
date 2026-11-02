@@ -2,11 +2,11 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
-import { CalendarDays, CalendarRange, ClipboardCheck, Clock, Download, FileSpreadsheet, FolderKanban, LayoutDashboard, LogOut, Palmtree, Settings, ShieldCheck, UserRound, Users } from 'lucide-react';
+import { CalendarClock, CalendarDays, CalendarRange, ClipboardCheck, Clock, Download, FileSpreadsheet, FolderKanban, LayoutDashboard, LogOut, Palmtree, Settings, ShieldCheck, UserRound, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import type { NavItem } from './nav-items';
-const ICONS = { clock: Clock, week: CalendarRange, month: CalendarDays, palm: Palmtree, user: UserRound, dash: LayoutDashboard, users: Users, approvals: ClipboardCheck, projects: FolderKanban, export: Download, import: FileSpreadsheet, settings: Settings, audit: ShieldCheck };
+const ICONS = { clock: Clock, week: CalendarRange, month: CalendarDays, palm: Palmtree, user: UserRound, dash: LayoutDashboard, users: Users, approvals: ClipboardCheck, projects: FolderKanban, export: Download, import: FileSpreadsheet, settings: Settings, audit: ShieldCheck, plan: CalendarClock };
 
 function isActive(pathname: string, href: string): boolean {
   if (href === '/app' || href === '/admin') return pathname === href;

@@ -8,6 +8,8 @@ import { addDays, isoWeekKey, toISODate, weekStart } from '@/domain/time';
 import { fmtDate, fmtH } from '@/lib/format';
 import { PageHeader, Stat } from '@/components/ui';
 import { DayList } from '@/components/DayList';
+import { PlanAdopt } from '@/components/PlanAdopt';
+import { planForDays } from '@/lib/roster';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,6 +32,9 @@ export default async function WeekPage({ searchParams }: { searchParams: { d?: s
   const target = days.reduce((a, d) => a + d.targetMinutes, 0);
   const credit = days.reduce((a, d) => a + d.creditMinutes, 0);
   const weekViolations = evals.flatMap((e) => e.summary.weeks).find((w) => w.isoWeek === isoWeekKey(monday))?.violations ?? [];
+  const plan = await planForDays(db, s.org, s.user.id, monday, sunday, days.flatMap((d) => d.entries.map((e) => ({ date: d.date, type: e.type }))));
+  const adoptable = Object.values(plan).filter((p) => p.adoptable).length;
+  const planned = Object.values(plan).reduce((a, p) => a + Math.max(0, (Number(p.end.slice(0, 2)) * 60 + Number(p.end.slice(3)) - Number(p.start.slice(0, 2)) * 60 - Number(p.start.slice(3)) + 1440) % 1440 - p.breakMinutes), 0);
 
   return (
     <div>
@@ -52,7 +57,7 @@ export default async function WeekPage({ searchParams }: { searchParams: { d?: s
       />
       <div className="grid grid-cols-3 gap-3 mb-4">
         <Stat label="Ist" value={fmtH(worked)} hint={credit ? `+ ${fmtH(credit)} Gutschrift` : undefined} />
-        <Stat label="Soll" value={fmtH(target)} />
+        <Stat label="Soll" value={fmtH(target)} hint={planned ? `Dienstplan ${fmtH(planned)}` : undefined} />
         <Stat label="Differenz" value={fmtH(worked + credit - target, true)} tone={worked + credit - target < 0 ? 'bad' : 'good'} />
       </div>
       {worked > rules.maxWeeklyMinutes && <p className="mb-3 text-sm text-red-800 bg-red-50 border border-red-200 rounded-lg p-3">Die Wochenarbeitszeit überschreitet die gesetzliche Höchstgrenze von {fmtH(rules.maxWeeklyMinutes)} (AZG § 9).</p>}
@@ -62,7 +67,15 @@ export default async function WeekPage({ searchParams }: { searchParams: { d?: s
         </p>
       ))}
       {locked && <p className="mb-3 text-sm text-muted bg-gray-50 border border-line rounded-lg p-3">Dieser Zeitraum ist eingereicht oder freigegeben und kann nicht mehr bearbeitet werden.</p>}
-      <DayList days={days} projects={projects} recordMode={employment.recordMode} timeZone={tz} locked={locked} today={today} />
+      {adoptable > 1 && !locked && (
+        <div className="mb-3 flex items-center justify-between gap-3 text-sm bg-brand-soft border border-brand/20 rounded-lg p-3">
+          <span>
+            {adoptable} geplante Tage ohne Buchung. Alles wie geplant gelaufen? Dann mit einem Tipp übernehmen – Abweichungen bitte einzeln nachtragen.
+          </span>
+          <PlanAdopt from={monday} to={sunday} label="Woche wie geplant übernehmen" small />
+        </div>
+      )}
+      <DayList days={days} projects={projects} recordMode={employment.recordMode} timeZone={tz} locked={locked} today={today} plan={plan} />
     </div>
   );
 }

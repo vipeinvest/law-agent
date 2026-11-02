@@ -1,7 +1,7 @@
 export interface NavItem {
   href: string;
   label: string;
-  icon: 'clock' | 'week' | 'month' | 'palm' | 'user' | 'dash' | 'users' | 'approvals' | 'projects' | 'export' | 'import' | 'settings' | 'audit';
+  icon: 'clock' | 'week' | 'month' | 'palm' | 'user' | 'dash' | 'users' | 'approvals' | 'projects' | 'export' | 'import' | 'settings' | 'audit' | 'plan';
   badge?: number;
 }
 
@@ -18,6 +18,7 @@ export function adminNav(role: string, pending = 0): NavItem[] {
   const items: NavItem[] = [
     { href: '/admin', label: 'Team', icon: 'dash' },
     { href: '/admin/freigaben', label: 'Freigaben', icon: 'approvals', badge: pending },
+    { href: '/admin/dienstplan', label: 'Dienstplan', icon: 'plan' },
     { href: '/admin/export', label: 'Export', icon: 'export' },
   ];
   if (role === 'owner' || role === 'admin') {

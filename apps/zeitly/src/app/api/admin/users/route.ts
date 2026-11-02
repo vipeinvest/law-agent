@@ -3,8 +3,6 @@ import { getDb } from '@/db/client';
 import { apiSession, clientIp, hasRole } from '@/lib/auth';
 import { ApiError, fail, handler, json, parseBody, unauthorized } from '@/lib/api';
 import { audit } from '@/lib/audit';
-import { escapeHtml, layout, sendMail } from '@/lib/mail';
-import { env } from '@/lib/env';
 import type { UserRow } from '@/lib/org';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +20,8 @@ const employmentSchema = z.object({
   allIn: z.boolean(),
   azgExempt: z.boolean().optional(),
   teleworkAgreement: z.boolean().optional(),
+  targetMode: z.enum(['contract', 'plan']).optional(),
+  autoAdoptPlan: z.boolean().optional(),
 });
 
 const createSchema = z.object({
@@ -32,6 +32,7 @@ const createSchema = z.object({
   managerId: z.string().uuid().nullable().optional(),
   employment: employmentSchema,
   sendInvite: z.boolean().default(true),
+  sendOnboarding: z.boolean().default(true),
 });
 
 export const POST = handler(async (req) => {
@@ -48,11 +49,14 @@ export const POST = handler(async (req) => {
     [s.org.id, email, b.name.trim(), b.role, b.personnelNo?.trim() || null, b.managerId ?? null, JSON.stringify(b.employment)],
   );
   await audit(db, { id: s.user.id, email: s.user.email, ip: clientIp() }, s.org.id, 'user.create', 'user', rows[0].id, null, { ...rows[0], employment: b.employment });
+  if (b.sendOnboarding && b.role !== 'payroll') {
+    const { sendOnboardingInvite } = await import('@/lib/onboarding');
+    const r = await sendOnboardingInvite(db, s.org, rows[0], { id: s.user.id, email: s.user.email, ip: clientIp() });
+    return json({ user: rows[0], onboardingLink: r.link }, { status: 201 });
+  }
   if (b.sendInvite) {
-    const link = `${env.appUrl}/login?org=${encodeURIComponent(s.org.slug)}`;
-    const appName = (s.org.theme as { appName?: string })?.appName || s.org.name;
-    const text = `Hallo ${b.name},\n\n${s.org.name} erfasst Arbeitszeiten ab sofort mit ${appName}.\n\nSo meldest du dich an:\n1. ${link} öffnen (am Handy gern zum Startbildschirm hinzufügen)\n2. Deine E-Mail-Adresse ${email} eingeben\n3. Den 6-stelligen Code aus der E-Mail eintippen – fertig, kein Passwort nötig.\n\nDeine Daten bleiben nur für dich und deine Führungskraft sichtbar. Informationen zum Datenschutz findest du in der App unter Profil.\n\nViele Grüße\n${s.user.name}`;
-    await sendMail({ to: email, subject: `Einladung: Zeiterfassung ${appName}`, text, html: layout(`Willkommen bei ${appName}`, `<p>${escapeHtml(text).replace(/\n/g, '<br>')}</p><p><a href="${link}" style="display:inline-block;padding:10px 16px;background:#1f5f5b;color:#fff;border-radius:8px;text-decoration:none">Jetzt anmelden</a></p>`, { name: appName, color: (s.org.theme as { primary?: string })?.primary }), template: 'invite', orgId: s.org.id });
+    const { sendLoginInvite } = await import('@/lib/invite');
+    await sendLoginInvite(db, s.org, rows[0], s.user.name);
   }
   return json({ user: rows[0] }, { status: 201 });
 });

@@ -4,6 +4,7 @@ import { Pencil, Plus } from 'lucide-react';
 import clsx from 'clsx';
 import { EntryForm, type EntryFormValue } from './EntryForm';
 import { Badge, SeverityBadge } from './ui';
+import { PlanAdopt } from './PlanAdopt';
 import { ABSENCE_LABELS, fmtDate, fmtH, fmtTime, LOCATION_LABELS, TYPE_LABELS, WEEKDAYS_SHORT } from '@/lib/format';
 import { formatMinutes } from '@/domain/time';
 
@@ -24,7 +25,17 @@ export interface DayView {
   violations: Array<{ code: string; severity: 'error' | 'warn' | 'info'; message: string }>;
 }
 
-export function DayList({ days, projects, recordMode, timeZone, locked, today, userId, compact }: { days: DayView[]; projects: Array<{ id: string; code: string; name: string; color: string | null }>; recordMode: 'full' | 'duration_only'; timeZone: string; locked: boolean; today: string; userId?: string; compact?: boolean }) {
+export interface PlanDayView {
+  start: string;
+  end: string;
+  breakMinutes: number;
+  location: 'office' | 'remote' | 'field';
+  note: string | null;
+  adopted: boolean;
+  adoptable: boolean;
+}
+
+export function DayList({ days, projects, recordMode, timeZone, locked, today, userId, compact, plan }: { days: DayView[]; projects: Array<{ id: string; code: string; name: string; color: string | null }>; recordMode: 'full' | 'duration_only'; timeZone: string; locked: boolean; today: string; userId?: string; compact?: boolean; plan?: Record<string, PlanDayView> }) {
   const [editing, setEditing] = useState<EntryFormValue | null>(null);
   const toTime = (iso: string) => new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone }).format(new Date(iso));
 
@@ -34,6 +45,7 @@ export function DayList({ days, projects, recordMode, timeZone, locked, today, u
         const diff = d.workedMinutes + d.creditMinutes - d.targetMinutes;
         const isToday = d.date === today;
         const isFuture = d.date > today;
+        const pl = plan?.[d.date];
         return (
           <section key={d.date} className={clsx('card', compact ? 'p-3' : 'p-4', isToday && 'ring-2 ring-brand/30', !d.isWorkDay && !d.entries.length && 'opacity-75')} id={d.date}>
             <header className="flex items-center justify-between gap-2">
@@ -70,6 +82,17 @@ export function DayList({ days, projects, recordMode, timeZone, locked, today, u
                 )}
               </div>
             </header>
+            {pl && (
+              <div className={clsx('mt-2 flex items-center justify-between gap-2 rounded-lg px-3 py-1.5 text-xs', pl.adopted ? 'bg-gray-50 text-muted' : 'bg-brand-soft text-brand')} data-testid="plan-line">
+                <span className="tabular-nums">
+                  <span className="font-semibold">Plan</span> {pl.start} – {pl.end} · {LOCATION_LABELS[pl.location]}
+                  {pl.breakMinutes > 0 && ` · Pause ${pl.breakMinutes} min`}
+                  {pl.note && ` · ${pl.note}`}
+                  {pl.adopted && ' · gebucht'}
+                </span>
+                {pl.adoptable && !locked && <PlanAdopt from={d.date} userId={userId} small label="Wie geplant" />}
+              </div>
+            )}
             {d.entries.length > 0 && (
               <ul className="mt-2 divide-y divide-line">
                 {d.entries.map((e) => {

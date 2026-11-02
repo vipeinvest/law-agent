@@ -12,7 +12,7 @@ export type Role = 'owner' | 'admin' | 'manager' | 'payroll' | 'employee';
 
 export type EntryType = 'work' | 'travel' | 'oncall';
 export type EntryLocation = 'office' | 'remote' | 'field';
-export type EntrySource = 'timer' | 'manual' | 'import' | 'correction';
+export type EntrySource = 'timer' | 'manual' | 'import' | 'correction' | 'plan';
 export type EntryStatus = 'open' | 'submitted' | 'approved' | 'locked';
 
 export type AbsenceType =
@@ -117,6 +117,10 @@ export interface Employment {
   azgExempt?: boolean;
   /** Schriftliche Telearbeitsvereinbarung liegt vor (§ 2h AVRAG). */
   teleworkAgreement?: boolean;
+  /** Soll-Ermittlung: aus Vertrag (gleichmäßig auf Arbeitstage) oder aus dem veröffentlichten Dienstplan. */
+  targetMode?: 'contract' | 'plan';
+  /** Veröffentlichte Schichten am Folgetag automatisch als Ist übernehmen, wenn nichts gestempelt wurde (Bestätigung beim Monatsabschluss). */
+  autoAdoptPlan?: boolean;
 }
 
 export const DEFAULT_EMPLOYMENT: Employment = {

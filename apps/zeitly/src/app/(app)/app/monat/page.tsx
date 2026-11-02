@@ -8,6 +8,8 @@ import { toISODate } from '@/domain/time';
 import { ABSENCE_LABELS, fmtDateTime, fmtH, fmtMonth, PERIOD_LABELS } from '@/lib/format';
 import { Badge, Card, PageHeader, SeverityBadge, Stat } from '@/components/ui';
 import { DayList } from '@/components/DayList';
+import { PlanAdopt } from '@/components/PlanAdopt';
+import { planForDays } from '@/lib/roster';
 import { SubmitMonth } from './SubmitMonth';
 
 export const dynamic = 'force-dynamic';
@@ -30,6 +32,8 @@ export default async function MonthPage({ searchParams }: { searchParams: { m?: 
   const nonInfo = summary.violations.filter((v) => v.severity !== 'info');
   const isCurrent = today >= summary.from && today <= summary.to;
   const balanceToDate = summary.balanceStartMinutes + summary.days.filter((d) => d.date < today).reduce((acc, d) => acc + d.workedMinutes + d.creditMinutes - d.targetMinutes, 0);
+  const plan = await planForDays(db, s.org, s.user.id, summary.from, summary.to, summary.days.flatMap((d) => d.entries.map((e) => ({ date: d.date, type: e.type }))));
+  const adoptable = Object.values(plan).filter((p) => p.adoptable).length;
 
   return (
     <div>
@@ -117,8 +121,11 @@ export default async function MonthPage({ searchParams }: { searchParams: { m?: 
         <SubmitMonth year={year} month={month} monthOver={monthOver} hasBlocking={summary.violations.some((v) => v.code === 'ENTRY_OPEN' || v.code === 'ENTRY_OVERLAP')} errorCount={summary.errorCount} />
       )}
 
-      <h2 className="font-semibold mt-6 mb-2">Tage</h2>
-      <DayList days={summary.days} projects={projects} recordMode={employment.recordMode} timeZone={tz} locked={locked} today={today} compact />
+      <div className="flex items-center justify-between gap-3 mt-6 mb-2">
+        <h2 className="font-semibold">Tage</h2>
+        {adoptable > 0 && !locked && <PlanAdopt from={summary.from} to={summary.to < today ? summary.to : today} label={`${adoptable} geplante Tage übernehmen`} small />}
+      </div>
+      <DayList days={summary.days} projects={projects} recordMode={employment.recordMode} timeZone={tz} locked={locked} today={today} compact plan={plan} />
     </div>
   );
 }

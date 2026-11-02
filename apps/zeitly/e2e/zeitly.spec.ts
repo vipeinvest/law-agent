@@ -131,3 +131,128 @@ test('public: legal pages and manifest are served; unauthenticated api is reject
   expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
   expect(headers['x-frame-options']).toBe('DENY');
 });
+
+// ---------------------------------------------------------------------------------------------
+// v2: Onboarding, Dienstplan, API v1, Prüfbericht
+// ---------------------------------------------------------------------------------------------
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const lastSaturday = (() => {
+  const d = new Date(today);
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 1) % 7 || 7));
+  return iso(d);
+})();
+
+test('onboarding: admin creates employee, questionnaire link works end-to-end and grants access', async ({ page, request }) => {
+  await login(page, 'm.behr@steinerfood.com');
+  const email = `e2e.onboarding.${Date.now()}@steinerfood.com`;
+  const create = await page.request.post('/api/admin/users', {
+    data: { email, name: 'Eva E2E', role: 'employee', personnelNo: 'SF-900', managerId: null, sendInvite: true, sendOnboarding: true, employment: { weeklyMinutes: 2400, workDays: [1, 2, 3, 4, 5], recordMode: 'full', gleitzeit: false, vacationDaysPerYear: 25, openingBalanceMinutes: 0, allIn: false, startDate: iso(today) } },
+  });
+  expect(create.status()).toBe(201);
+  const { user, onboardingLink } = await create.json();
+  expect(onboardingLink).toMatch(/\/onboarding\/[A-Za-z0-9_-]{20,}/);
+  const token = onboardingLink.split('/onboarding/')[1];
+
+  // public questionnaire (no login)
+  await page.context().clearCookies();
+  await page.goto(`/onboarding/${token}`);
+  await expect(page.getByText('Eva', { exact: false }).first()).toBeVisible();
+  await expect(page.getByTestId('onb-next')).toBeVisible();
+
+  // fill via API (same endpoints the wizard uses), then submit
+  const save = await request.post(`/api/onboarding/${token}`, {
+    data: {
+      data: {
+        person: { firstName: 'Eva', lastName: 'E2E', birthDate: '1980-01-01', svNumber: '1237010180', nationality: 'Österreich' },
+        contact: { street: 'Teststraße 1', zip: '1010', city: 'Wien', country: 'Österreich', phone: '+43 660 1234567' },
+        bank: { iban: 'AT611904300234573201' },
+        tax: { children: [], avabRequested: false, pendlerrechnerDone: false, otherEmployment: false },
+        employment: { jobTitle: 'Vertrieb Innendienst', startDate: iso(today), weeklyHours: 40, firstJobInAustria: false },
+      },
+    },
+  });
+  expect(save.status()).toBe(200);
+  expect((await save.json()).completeness).toBeGreaterThan(50);
+  const submit = await request.put(`/api/onboarding/${token}`, { data: { consents: { privacyInfoRead: true, timeTrackingConsent: true, dataCorrect: true } } });
+  expect(submit.status()).toBe(200);
+  expect((await request.put(`/api/onboarding/${token}`, { data: { consents: { privacyInfoRead: true, timeTrackingConsent: true, dataCorrect: true } } })).status()).toBe(409);
+
+  // admin sees submitted status + personnel sheet PDF; new employee can log in
+  await login(page, 'm.behr@steinerfood.com');
+  await page.goto(`/admin/mitarbeiter/${user.id}?tab=onboarding`);
+  await expect(page.getByText('eingereicht', { exact: true }).first()).toBeVisible();
+  const pdf = await page.request.post('/api/admin/onboarding', { data: { action: 'pdf', userId: user.id } });
+  expect(pdf.status()).toBe(200);
+  expect(pdf.headers()['content-type']).toContain('application/pdf');
+  await page.context().clearCookies();
+  await login(page, email);
+  await expect(page.getByRole('heading', { name: /Hallo|Guten/ })).toBeVisible();
+});
+
+test('roster: manager plans and publishes a shift, employee adopts it as actual time', async ({ page }) => {
+  await login(page, 'm.behr@steinerfood.com');
+  await page.goto('/admin/dienstplan');
+  await expect(page.getByRole('heading', { name: /Dienstplan/ })).toBeVisible();
+  await expect(page.getByText('Lukas Brandstätter')).toBeVisible();
+  await page.goto('/admin/mitarbeiter');
+  const href = await page.getByRole('link', { name: 'Lukas Brandstätter', exact: true }).first().getAttribute('href');
+  const lukas = { id: href!.split('/admin/mitarbeiter/')[1].split('?')[0] };
+  expect(lukas.id).toMatch(/^[0-9a-f-]{36}$/);
+  const monday = (() => {
+    const d = new Date(lastSaturday + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() - 5);
+    return iso(d);
+  })();
+  const up = await page.request.post('/api/admin/shifts', { data: { action: 'upsert', shift: { userId: lukas.id, date: lastSaturday, start: '09:00', end: '13:00', breakMinutes: 0, location: 'remote', note: 'Inventur' } } });
+  expect(up.status()).toBe(200);
+  const check = await page.request.post('/api/admin/shifts', { data: { action: 'check', monday } });
+  expect(check.status()).toBe(200);
+  const pub = await page.request.post('/api/admin/shifts', { data: { action: 'publish', monday, force: true, notify: false } });
+  expect(pub.status()).toBe(200);
+  expect((await pub.json()).published).toBeGreaterThan(0);
+
+  await page.context().clearCookies();
+  await login(page, 'lukas.brandstaetter@steinerfood.com');
+  await page.goto(`/app/woche?d=${lastSaturday}`);
+  const line = page.locator(`section[id="${lastSaturday}"] [data-testid="plan-line"]`);
+  await expect(line).toContainText('09:00 – 13:00');
+  await line.getByTestId('plan-adopt').click();
+  await expect(line).toContainText('gebucht');
+  await expect(page.locator(`section[id="${lastSaturday}"]`).getByText('Plan: Inventur', { exact: true })).toBeVisible();
+  const entries = await (await page.request.get(`/api/entries?from=${lastSaturday}&to=${lastSaturday}`)).json();
+  const list = entries.entries ?? entries;
+  expect(list.some((e: { source: string }) => e.source === 'plan')).toBe(true);
+});
+
+test('api v1: owner creates key in settings, payroll endpoint answers with bearer token and enforces scopes', async ({ page, request }) => {
+  await login(page, 'inge.steiner@steinerfood.com');
+  await page.goto('/admin/einstellungen');
+  const panel = page.getByTestId('apikeys-panel');
+  await expect(panel).toBeVisible();
+  await panel.getByTestId('apikey-create').click();
+  const fresh = await panel.getByTestId('apikey-fresh').locator('code').textContent();
+  expect(fresh).toMatch(/^zt_live_[A-Za-z0-9]+\.[A-Za-z0-9_-]{20,}$/);
+  const ok = await request.get(`/api/v1/payroll/${PY}/${PM}`, { headers: { authorization: `Bearer ${fresh}` } });
+  expect(ok.status()).toBe(200);
+  const body = await ok.json();
+  expect(Array.isArray(body.data)).toBe(true);
+  expect(body.data.length).toBeGreaterThan(2);
+  expect(body.data[0].hours).toHaveProperty('overtime');
+  expect((await request.get(`/api/v1/employees`, { headers: { authorization: `Bearer ${fresh}` } })).status()).toBe(403);
+  expect((await request.get(`/api/v1/payroll/${PY}/${PM}`)).status()).toBe(401);
+  expect((await request.get(`/api/v1/payroll/${PY}/${PM}`, { headers: { authorization: 'Bearer zt_live_abc.wrong' } })).status()).toBe(401);
+});
+
+test('review: admin opens the monthly Prüfbericht for an employee', async ({ page }) => {
+  await login(page, 'm.behr@steinerfood.com');
+  await page.goto('/admin/mitarbeiter');
+  await page.getByRole('link', { name: /Tobias Kern/ }).first().click();
+  await page.waitForURL(/\/admin\/mitarbeiter\//);
+  await page.goto(page.url().split('?')[0] + `?m=${PMM}`);
+  await page.getByTestId('review-run').click();
+  const dlg = page.getByTestId('review-dialog');
+  await expect(dlg).toBeVisible();
+  await expect(dlg).toContainText('Soll');
+  await expect(dlg).toContainText(/Zu klären|keine Verstöße/);
+});
