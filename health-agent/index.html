@@ -1,0 +1,1728 @@
+<title>Longevity-Tresor</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one-column vault app (max 680px), sticky header, bottom tab bar; lock screen as a full-height keypad */
+:root {
+  --bg: #EDF1F0;
+  --surface: #FFFFFF;
+  --surface-2: #E2E9E7;
+  --ink: #13201E;
+  --muted: #586866;
+  --line: #CCD7D4;
+  --accent: #0E6A6C;
+  --accent-ink: #FFFFFF;
+  --accent-soft: #D2E7E5;
+  --good: #2C7A4D;
+  --warn: #A86F12;
+  --bad: #B23E38;
+  --good-soft: #DCEFE3;
+  --warn-soft: #F6EAD2;
+  --bad-soft: #F5DEDC;
+  --f-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C1414; --surface: #131F1F; --surface-2: #1A2928; --ink: #E2EDEB; --muted: #91A4A1; --line: #283938;
+    --accent: #52B9B6; --accent-ink: #052120; --accent-soft: #15393A;
+    --good: #5EC28C; --warn: #E2AA4C; --bad: #EA7C73; --good-soft: #163327; --warn-soft: #3A2D12; --bad-soft: #3D1C1A;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C1414; --surface: #131F1F; --surface-2: #1A2928; --ink: #E2EDEB; --muted: #91A4A1; --line: #283938;
+  --accent: #52B9B6; --accent-ink: #052120; --accent-soft: #15393A;
+  --good: #5EC28C; --warn: #E2AA4C; --bad: #EA7C73; --good-soft: #163327; --warn-soft: #3A2D12; --bad-soft: #3D1C1A;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { min-height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+h1, h2, h3 { font-family: var(--f-display); line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: 1.9rem; font-weight: 750; }
+h2 { font-size: 1.35rem; font-weight: 700; }
+h3 { font-size: 1.05rem; font-weight: 650; }
+p { margin: 0; }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+.label { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 700; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.wrap { max-width: 680px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > * { min-width: 0; }
+.spread { justify-content: space-between; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 460px) { .grid3 { grid-template-columns: 1fr 1fr; } }
+
+/* header */
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-block: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 700; font-size: 1.05rem; }
+.brand svg { width: 26px; height: 26px; flex: none; }
+.brand span { white-space: nowrap; }
+.top .row { flex-wrap: nowrap; }
+@media (max-width: 440px) { .store-chip { display: none; } }
+.store-chip { font-size: 0.74rem; padding: 3px 9px; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-weight: 700; white-space: nowrap; }
+
+main { padding-block: 18px 110px; }
+
+/* bottom nav */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+.tabs .inner { max-width: 680px; margin: 0 auto; display: grid; grid-template-columns: repeat(6, 1fr); }
+.tab { background: none; border: 0; padding: 8px 2px 9px; display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.7rem; color: var(--muted); cursor: pointer; font-weight: 700; }
+.tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tab[aria-current="page"] { color: var(--accent); }
+
+/* cards and controls */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.flat { background: transparent; border-style: dashed; }
+.card.hl { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.btn { border: 1px solid var(--line); background: var(--surface); padding: 10px 16px; border-radius: 11px; cursor: pointer; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; text-align: center; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.ghost { background: transparent; border-color: transparent; color: var(--accent); padding-inline: 8px; }
+.btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+.btn.sm { min-height: 34px; padding: 6px 12px; font-size: 0.88rem; border-radius: 9px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.block { width: 100%; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > span { font-size: 0.86rem; font-weight: 700; color: var(--muted); }
+input[type=text], input[type=number], input[type=date], input[type=time], input[type=password], select, textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px;
+}
+textarea { min-height: 96px; resize: vertical; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.unit-in { display: flex; align-items: center; gap: 8px; }
+.unit-in input { flex: 1; }
+.unit-in .u { color: var(--muted); font-family: var(--f-mono); font-size: 0.9rem; white-space: nowrap; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: var(--surface); padding: 8px 13px; border-radius: 99px; cursor: pointer; font-size: 0.92rem; min-height: 38px; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.pill { display: inline-flex; align-items: center; gap: 5px; font-size: 0.76rem; font-weight: 700; padding: 2px 9px; border-radius: 99px; white-space: nowrap; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.neutral { background: var(--surface-2); color: var(--muted); }
+
+.scale { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; }
+.scale button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; min-height: 40px; cursor: pointer; font-family: var(--f-mono); font-weight: 600; padding: 0; }
+.scale button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.scale-ends { display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--muted); }
+
+.seg { display: flex; gap: 4px; background: var(--surface-2); padding: 4px; border-radius: 12px; overflow-x: auto; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 8px 10px; border-radius: 9px; font-weight: 700; color: var(--muted); cursor: pointer; white-space: nowrap; min-height: 38px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+.progress { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.progress > i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+
+.list { display: flex; flex-direction: column; }
+.list > .item { display: flex; gap: 12px; align-items: flex-start; padding-block: 12px; border-top: 1px solid var(--line); }
+.list > .item:first-child { border-top: 0; padding-top: 0; }
+.item .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.thumb { width: 64px; height: 64px; border-radius: 10px; object-fit: cover; background: var(--surface-2); flex: none; border: 1px solid var(--line); }
+.thumb.ph { display: grid; place-items: center; color: var(--muted); font-size: 0.7rem; text-align: center; }
+
+/* trends */
+.trends { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 520px) { .trends { grid-template-columns: 1fr 1fr; } }
+.trend { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.trend .v { font-family: var(--f-mono); font-size: 1.25rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.trend .v small { font-size: 0.72rem; color: var(--muted); font-weight: 400; margin-left: 3px; }
+.trend svg { width: 100%; height: 34px; display: block; }
+.spark-line { fill: none; stroke: var(--accent); stroke-width: 1.8; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.spark-area { fill: var(--accent-soft); stroke: none; }
+.spark-dot { fill: var(--accent); stroke: var(--surface); stroke-width: 1.5; }
+.spark-grid { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; stroke-dasharray: 2 3; }
+
+.meter { display: flex; flex-direction: column; gap: 6px; }
+.meter .bar { height: 10px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.meter .bar i { display: block; height: 100%; background: var(--accent); }
+
+/* chat */
+.chat { display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 88%; padding: 10px 14px; border-radius: 14px; overflow-wrap: anywhere; }
+.msg.user { align-self: flex-end; background: var(--accent); color: var(--accent-ink); border-bottom-right-radius: 4px; white-space: pre-wrap; }
+.msg.assistant { align-self: flex-start; background: var(--surface); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+.msg.assistant p + p, .msg.assistant ul, .msg.assistant ol, .msg.assistant h4 { margin-top: 8px; }
+.msg.assistant ul, .msg.assistant ol { padding-left: 20px; margin-bottom: 0; }
+.msg.assistant h4 { font-family: var(--f-display); font-size: 1rem; margin-bottom: 0; }
+.msg.note { align-self: center; font-size: 0.8rem; color: var(--muted); background: transparent; padding: 2px 8px; }
+.composer { position: sticky; bottom: calc(66px + env(safe-area-inset-bottom, 0px)); background: var(--bg); padding-block: 10px; display: flex; gap: 8px; align-items: flex-end; }
+.composer textarea { min-height: 48px; max-height: 160px; }
+.md code { font-family: var(--f-mono); font-size: 0.88em; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+
+/* lock screen */
+.lock { min-height: 100vh; min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding-block: 24px; }
+.lock-card { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+.lock-mark { width: 64px; height: 64px; }
+.dots { display: flex; gap: 10px; justify-content: center; min-height: 18px; flex-wrap: wrap; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--accent); }
+.dots i.on { background: var(--accent); }
+.dots.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-8px); } 75% { transform: translateX(8px); } }
+.pad { display: grid; grid-template-columns: repeat(3, 76px); gap: 12px; justify-content: center; }
+.pad button { width: 76px; height: 64px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); font-family: var(--f-mono); font-size: 1.5rem; font-weight: 600; cursor: pointer; }
+.pad button:active { background: var(--accent-soft); }
+.pad button.fn { font-family: var(--f-body); font-size: 0.9rem; font-weight: 700; }
+.pad button.ok { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.msg-err { color: var(--bad); font-weight: 700; min-height: 1.5em; }
+
+/* interview */
+.iv-q { font-family: var(--f-display); font-size: 1.45rem; font-weight: 650; line-height: 1.25; text-wrap: balance; }
+.iv-nav { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-weight: 700; z-index: 20; max-width: calc(100% - 32px); font-size: 0.92rem; }
+.sheet-bg { position: fixed; inset: 0; background: rgba(5, 15, 15, .45); z-index: 15; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--bg); width: 100%; max-width: 680px; max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding-block: 18px calc(24px + env(safe-area-inset-bottom, 0px)); }
+.sheet .wrap { display: flex; flex-direction: column; gap: 14px; }
+.confirm { background: var(--bad-soft); border: 1px solid var(--bad); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+details summary { cursor: pointer; font-weight: 700; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; font-size: 0.92rem; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; text-align: right; font-family: var(--f-mono); }
+.ans { white-space: pre-wrap; overflow-wrap: anywhere; }
+.photo-prev { width: 100%; max-height: 260px; object-fit: contain; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); }
+.file-btn { position: relative; overflow: hidden; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div id="app"></div>
+
+<script>
+"use strict";
+/* ================================================================
+   Longevity-Tresor — persönlicher Health-, Longevity- & Performance-Agent
+   Sicherheit: Alle Inhalte werden im Browser mit AES-256-GCM verschlüsselt.
+   Der Schlüssel wird aus deiner PIN abgeleitet (PBKDF2-SHA-256, 600.000 Runden).
+   Die PIN selbst wird nirgends gespeichert. Gespeichert wird nur Ciphertext:
+   im privaten Claude-Speicher (data/users/<deine-id>/, nur für dich lesbar)
+   oder, außerhalb von Claude, im localStorage dieses Browsers.
+   ================================================================ */
+
+const VERSION = 1;
+const ITER = 600000;
+const LS = "lt:";
+const MIN_PIN = 6;
+
+/* ---------- small helpers ---------- */
+const $ = (s, r = document) => r.querySelector(s);
+function el(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  let value;
+  if (props) for (const [k, v] of Object.entries(props)) {
+    if (v == null || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else if (k === "html") e.innerHTML = v;
+    else if (k === "value") value = v;
+    else if (k === "checked") e.checked = !!v;
+    else if (k.startsWith("on") && typeof v === "function") e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c.nodeType ? c : String(c));
+  if (value !== undefined) e.value = value;
+  return e;
+}
+const svgNS = "http://www.w3.org/2000/svg";
+function svg(tag, attrs = {}, ...kids) { const e = document.createElementNS(svgNS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); kids.forEach(k => e.append(k)); return e; }
+const uid = () => (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "").slice(0, 16) : Math.random().toString(36).slice(2, 18));
+const todayStr = (d = new Date()) => d.toLocaleDateString("sv-SE");
+const nowTime = () => new Date().toTimeString().slice(0, 5);
+const monthOf = (date) => date.slice(0, 7);
+const addDays = (date, n) => { const d = new Date(date + "T12:00:00"); d.setDate(d.getDate() + n); return todayStr(d); };
+const fmtDate = (date) => new Date(date + "T12:00:00").toLocaleDateString("de-AT", { weekday: "short", day: "numeric", month: "short" });
+const fmtLong = (date) => new Date(date + "T12:00:00").toLocaleDateString("de-AT", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+const num = (v) => (v === "" || v == null || isNaN(+v)) ? null : +v;
+const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+function withTimeout(p, ms) { return Promise.race([Promise.resolve(p), new Promise(r => setTimeout(() => r(null), ms))]); }
+function lsGet(k) { try { return localStorage.getItem(LS + k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(LS + k, v); return true; } catch { return false; } }
+function lsDel(k) { try { localStorage.removeItem(LS + k); } catch {} }
+let toastTimer;
+function toast(msg) {
+  document.querySelectorAll(".toast").forEach(t => t.remove());
+  const t = el("div", { class: "toast", role: "status", text: msg });
+  document.body.append(t);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.remove(), 3200);
+}
+
+/* ---------- crypto ---------- */
+const te = new TextEncoder(), td = new TextDecoder();
+function b64(buf) { const u = new Uint8Array(buf); let s = ""; for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); }
+function unb64(s) { return Uint8Array.from(atob(s), c => c.charCodeAt(0)); }
+async function deriveKey(pin, saltB64, iter) {
+  const base = await crypto.subtle.importKey("raw", te.encode(pin), "PBKDF2", false, ["deriveKey"]);
+  return crypto.subtle.deriveKey({ name: "PBKDF2", salt: unb64(saltB64), iterations: iter, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+}
+async function encWith(key, obj) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, te.encode(JSON.stringify(obj)));
+  return { v: VERSION, iv: b64(iv), ct: b64(ct) };
+}
+async function decWith(key, rec) {
+  const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: unb64(rec.iv) }, key, unb64(rec.ct));
+  return JSON.parse(td.decode(pt));
+}
+
+/* ---------- storage: private Claude store, or this browser ---------- */
+const Store = {
+  mode: "local", db: null, base: null, ready: null,
+  init() {
+    if (this.ready) return this.ready;
+    this.ready = (async () => {
+      try {
+        if (!window.claude || typeof window.claude.use !== "function") return;
+        const [db, user] = await Promise.all([withTimeout(window.claude.use("db"), 12000), withTimeout(window.claude.use("user"), 12000)]);
+        if (!db || !user) return;
+        const id = await user.id();
+        if (!id) return;
+        this.db = db; this.base = "data/users/" + id; this.mode = "cloud";
+      } catch (e) { this.mode = "local"; }
+    })();
+    return this.ready;
+  },
+  ref(name) { return this.db.doc(this.base + "/" + name); },
+  async get(name) {
+    if (this.mode === "cloud") {
+      try { const s = await this.ref(name).get(); return s.exists ? s.data() : null; }
+      catch (e) { if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random() * 800)); const s = await this.ref(name).get(); return s.exists ? s.data() : null; } throw e; }
+    }
+    const v = lsGet(name); return v ? JSON.parse(v) : null;
+  },
+  async set(name, data) {
+    if (this.mode === "cloud") return this.ref(name).set(data);
+    if (!lsSet(name, JSON.stringify(data))) throw { code: "quota_exceeded", message: "Browser-Speicher voll" };
+  },
+  async del(name) {
+    if (this.mode === "cloud") return this.ref(name).delete();
+    lsDel(name);
+  },
+};
+const chains = {};
+function queueSet(name, data) {
+  chains[name] = (chains[name] || Promise.resolve()).then(() => Store.set(name, data)).catch(err => {
+    console.error(err);
+    toast(err && err.code === "quota_exceeded" ? "Speicher voll. Lösche alte Fotos oder exportiere ein Backup." : "Speichern fehlgeschlagen. Prüfe die Verbindung, ich versuche es bei der nächsten Änderung erneut.");
+  });
+  return chains[name];
+}
+
+/* ---------- vault state ---------- */
+let KEY = null, META = null, S = null;
+const dirty = new Set();
+let saveTimer = null;
+const imgCache = new Map();
+
+function emptyState() {
+  return {
+    profile: { answers: {}, skipped: {}, settings: { autolock: 5 }, created: todayStr(), dailyQ: {}, stackReview: null },
+    facts: [], labs: [], supps: [], chat: [], index: { months: [] }, months: {},
+  };
+}
+const CORE = ["profile", "facts", "labs", "supps", "chat", "index"];
+function slice(name) {
+  if (name.startsWith("m-")) return S.months[name.slice(2)];
+  if (name === "facts" || name === "labs" || name === "supps" || name === "chat") return { items: S[name] };
+  return S[name];
+}
+function save(name) { dirty.add(name); clearTimeout(saveTimer); saveTimer = setTimeout(flush, 700); }
+async function flush() {
+  clearTimeout(saveTimer);
+  if (!KEY || !S) return;
+  const names = [...dirty]; dirty.clear();
+  const jobs = [];
+  for (const n of names) {
+    const data = slice(n);
+    if (!data) continue;
+    if (n === "chat" && S.chat.length > 160) S.chat = S.chat.slice(-160);
+    const rec = await encWith(KEY, n === "chat" ? { items: S.chat } : data);
+    jobs.push(queueSet(n, rec));
+  }
+  await Promise.all(jobs);
+}
+function month(mk) {
+  if (!S.months[mk]) {
+    S.months[mk] = { checkins: {}, meals: [], water: {}, taken: {} };
+    if (!S.index.months.includes(mk)) { S.index.months.push(mk); S.index.months.sort(); save("index"); }
+  }
+  return S.months[mk];
+}
+const checkinOf = (date) => (S.months[monthOf(date)] || {}).checkins?.[date] || null;
+const mealsOf = (date) => ((S.months[monthOf(date)] || {}).meals || []).filter(m => m.date === date).sort((a, b) => (a.time || "").localeCompare(b.time || ""));
+const takenOf = (date) => (S.months[monthOf(date)] || {}).taken?.[date] || [];
+const waterOf = (date) => (S.months[monthOf(date)] || {}).water?.[date] || 0;
+
+async function loadVault() {
+  S = emptyState();
+  for (const n of CORE) {
+    const rec = await Store.get(n);
+    if (!rec) continue;
+    const d = await decWith(KEY, rec);
+    if (n === "profile") S.profile = Object.assign(S.profile, d);
+    else if (n === "index") S.index = d;
+    else S[n] = d.items || [];
+  }
+  for (const mk of S.index.months || []) {
+    const rec = await Store.get("m-" + mk);
+    if (rec) S.months[mk] = Object.assign({ checkins: {}, meals: [], water: {}, taken: {} }, await decWith(KEY, rec));
+  }
+}
+async function saveImage(dataUrl) {
+  const id = uid();
+  imgCache.set(id, dataUrl);
+  await queueSet("img-" + id, await encWith(KEY, { d: dataUrl }));
+  return id;
+}
+async function loadImage(id) {
+  if (!id) return null;
+  if (imgCache.has(id)) return imgCache.get(id);
+  try { const rec = await Store.get("img-" + id); if (!rec) return null; const { d } = await decWith(KEY, rec); imgCache.set(id, d); return d; }
+  catch { return null; }
+}
+async function deleteImage(id) { if (!id) return; imgCache.delete(id); try { await Store.del("img-" + id); } catch {} }
+function allImageIds() {
+  const ids = new Set();
+  S.supps.forEach(s => (s.photos || []).forEach(p => ids.add(p)));
+  Object.values(S.months).forEach(m => (m.meals || []).forEach(x => x.img && ids.add(x.img)));
+  return [...ids];
+}
+
+/* ---------- images ---------- */
+async function readImage(file) {
+  const url = URL.createObjectURL(file);
+  try { const img = new Image(); img.src = url; await img.decode(); return img; }
+  finally { setTimeout(() => URL.revokeObjectURL(url), 2000); }
+}
+function scaled(img, max) {
+  const r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement("canvas");
+  c.width = Math.max(1, Math.round(img.naturalWidth * r)); c.height = Math.max(1, Math.round(img.naturalHeight * r));
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c;
+}
+async function prepPhoto(file) {
+  const img = await readImage(file);
+  const store = scaled(img, 720).toDataURL("image/jpeg", 0.72);
+  const big = await new Promise(r => scaled(img, 1500).toBlob(r, "image/jpeg", 0.85));
+  return { store, blob: big };
+}
+
+/* ---------- Claude (sample) ---------- */
+let samplePromise = null;
+function getSample() {
+  if (!samplePromise) samplePromise = (window.claude && typeof window.claude.use === "function") ? withTimeout(window.claude.use("sample"), 12000) : Promise.resolve(null);
+  return samplePromise;
+}
+let sampleBlocked = false;
+function sampleErr(e) {
+  const c = e && e.code;
+  if (["not_granted", "sampling_disabled", "not_declared", "capability_disabled", "capability_removed"].includes(c)) { sampleBlocked = true; return "Claude ist für diese Seite nicht freigegeben. Du kannst es in den Berechtigungen der Seite erlauben."; }
+  if (c === "rate_limited") return "Gerade zu viele Anfragen. Versuch es in ein paar Minuten noch einmal.";
+  if (c === "session_expired") return "Bitte melde dich bei Claude neu an.";
+  if (c === "image_rejected" || c === "images_unavailable") return "Das Foto konnte nicht gelesen werden. Versuch ein anderes Bild (JPEG oder PNG).";
+  if (c === "refused") return "Claude hat diese Anfrage abgelehnt. Formuliere sie anders.";
+  if (c === "invalid_json") return "Die Antwort war unvollständig. Tippe noch einmal.";
+  if (c === "cancelled") return "";
+  return "Verbindung zu Claude unterbrochen. Versuch es noch einmal.";
+}
+
+/* ================================================================
+   QUESTIONNAIRE (Erstgespräch)
+   ================================================================ */
+const SECTIONS = [
+  { id: "basis", name: "Basisdaten" },
+  { id: "ziele", name: "Ziele & Leistung" },
+  { id: "gesundheit", name: "Gesundheit & Familie" },
+  { id: "schlaf", name: "Schlaf" },
+  { id: "ernaehrung", name: "Ernährung" },
+  { id: "bewegung", name: "Bewegung & Fitness" },
+  { id: "psyche", name: "Psyche, Stress & Fokus" },
+  { id: "substanzen", name: "Substanzen" },
+  { id: "tracking", name: "Messwerte & Geräte" },
+  { id: "erholung", name: "Erholung & Umfeld" },
+];
+const SC = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"];
+const Q = [
+  ["basis", "name", "Wie soll ich dich nennen?", "text"],
+  ["basis", "birth", "Wann bist du geboren?", "date"],
+  ["basis", "sex", "Biologisches Geschlecht? Das brauche ich für Referenzwerte bei Blutwerten und Training.", "choice", ["männlich", "weiblich", "keine Angabe"]],
+  ["basis", "height", "Wie groß bist du?", "number", null, "cm"],
+  ["basis", "weight", "Was wiegst du aktuell?", "number", null, "kg"],
+  ["basis", "waist", "Taillenumfang auf Nabelhöhe, falls du ihn kennst?", "number", null, "cm"],
+  ["basis", "bodyfat", "Körperfettanteil, falls bekannt?", "number", null, "%"],
+  ["basis", "work", "Was machst du beruflich und wie sieht ein typischer Arbeitstag aus?", "textarea"],
+
+  ["ziele", "goals", "Was sind deine wichtigsten Ziele?", "multi", ["Lange gesund leben", "Mehr Energie im Alltag", "Mentale Höchstleistung", "Körperliche Höchstleistung", "Muskelaufbau", "Fettabbau", "Besserer Schlaf", "Stressresistenz", "Blutwerte optimieren", "Krankheiten vorbeugen"]],
+  ["ziele", "goal_phys", "Welche körperliche Leistung willst du in 1 bis 3 Jahren abrufen können?", "textarea", null, null, "z. B. Halbmarathon unter 1:45, 10 saubere Klimmzüge, Bergtour mit 2000 Höhenmetern"],
+  ["ziele", "goal_mind", "Welche mentale Leistung willst du abrufen können?", "textarea", null, null, "z. B. 4 Stunden Deep Work am Stück, ruhig bleiben in Verhandlungen, schneller lernen"],
+  ["ziele", "goal_80", "Stell dir dich mit 80 vor. Was willst du dann noch problemlos können?", "textarea", null, null, "z. B. Enkel hochheben, Koffer ins Gepäckfach heben, 5 km wandern, vom Boden aufstehen ohne Hände"],
+  ["ziele", "why", "Warum ist dir das gerade jetzt wichtig?", "textarea"],
+
+  ["gesundheit", "diag", "Hast du Diagnosen oder chronische Erkrankungen?", "textarea", null, null, "keine, oder z. B. Bluthochdruck, Asthma, Hashimoto"],
+  ["gesundheit", "meds", "Nimmst du regelmäßig Medikamente? Bitte mit Name und Dosis.", "textarea", null, null, "keine, oder z. B. Ramipril 5 mg morgens"],
+  ["gesundheit", "allerg", "Allergien oder Unverträglichkeiten?", "textarea"],
+  ["gesundheit", "ops", "Frühere Operationen, Verletzungen oder größere Erkrankungen?", "textarea"],
+  ["gesundheit", "complaints", "Hast du aktuell Beschwerden?", "multi", ["Keine", "Müdigkeit", "Rückenschmerzen", "Gelenkschmerzen", "Verdauungsprobleme", "Kopfschmerzen", "Schlafprobleme", "Konzentrationsprobleme", "Wenig Libido", "Hautprobleme", "Sonstiges"]],
+  ["gesundheit", "family", "Was kam bei Eltern, Geschwistern oder Großeltern vor?", "multi", ["Herzinfarkt oder Schlaganfall vor 60", "Bluthochdruck", "Diabetes Typ 2", "Krebs", "Demenz oder Alzheimer", "Depression", "Autoimmunerkrankung", "Nichts bekannt"]],
+  ["gesundheit", "family_age", "Wie alt sind oder wurden deine Eltern und Großeltern, und woran sind sie gegebenenfalls gestorben?", "textarea"],
+  ["gesundheit", "checkup", "Wann warst du zuletzt beim Gesundheits-Check (Blutbild, Blutdruck, EKG)?", "choice", ["vor weniger als 6 Monaten", "vor 6 bis 12 Monaten", "vor 1 bis 3 Jahren", "vor mehr als 3 Jahren", "noch nie"]],
+  ["gesundheit", "bp", "Blutdruck, falls bekannt?", "text", null, "mmHg", "z. B. 122/78"],
+
+  ["schlaf", "bed", "Wann gehst du normalerweise ins Bett?", "time"],
+  ["schlaf", "wake", "Wann stehst du normalerweise auf?", "time"],
+  ["schlaf", "sleep_h", "Wie viele Stunden schläfst du tatsächlich pro Nacht?", "number", null, "h"],
+  ["schlaf", "sleep_q", "Wie gut ist dein Schlaf insgesamt?", "scale", ["sehr schlecht", "hervorragend"]],
+  ["schlaf", "sleep_issues", "Was davon trifft auf dich zu?", "multi", ["Einschlafprobleme", "Nächtliches Aufwachen", "Schnarchen", "Atemaussetzer (vom Partner bemerkt)", "Müde trotz genug Schlaf", "Ohne Wecker kein Aufstehen", "Unregelmäßige Schlafzeiten", "Handy im Bett", "Nichts davon"]],
+  ["schlaf", "chrono", "Bist du eher Lerche oder Eule?", "choice", ["klare Lerche", "eher Lerche", "neutral", "eher Eule", "klare Eule"]],
+
+  ["ernaehrung", "diet", "Wie ernährst du dich hauptsächlich?", "choice", ["Mischkost", "Mediterran", "Low Carb / Keto", "Pescetarisch", "Vegetarisch", "Vegan", "Kein festes Muster"]],
+  ["ernaehrung", "meals", "Wie viele Mahlzeiten isst du pro Tag?", "choice", ["1", "2", "3", "4 oder mehr", "unregelmäßig"]],
+  ["ernaehrung", "window", "Wann isst du typischerweise die erste und die letzte Mahlzeit?", "text", null, null, "z. B. 8:00 bis 20:30"],
+  ["ernaehrung", "fasting", "Fastest du? Intervallfasten, längere Fastenperioden?", "textarea", null, null, "nein, oder z. B. 16:8 an Werktagen"],
+  ["ernaehrung", "protein", "Wie viel Protein isst du ungefähr pro Tag?", "choice", ["weiß ich nicht", "unter 80 g", "80 bis 120 g", "120 bis 160 g", "über 160 g"]],
+  ["ernaehrung", "protein_src", "Was sind deine Hauptquellen für Protein?", "multi", ["Rind / Schwein", "Geflügel", "Fisch", "Eier", "Milchprodukte / Skyr / Topfen", "Hülsenfrüchte", "Tofu / Tempeh", "Proteinpulver"]],
+  ["ernaehrung", "veg", "Wie viele Portionen Gemüse und Obst isst du pro Tag? Eine Portion ist eine Handvoll.", "number", null, "Portionen"],
+  ["ernaehrung", "plants", "Wie viele verschiedene Pflanzen isst du pro Woche (Gemüse, Obst, Nüsse, Samen, Kräuter, Hülsenfrüchte, Vollkorn)?", "choice", ["unter 10", "10 bis 20", "20 bis 30", "über 30", "keine Ahnung"]],
+  ["ernaehrung", "fish", "Wie oft isst du fetten Fisch wie Lachs, Makrele oder Sardinen?", "choice", ["nie", "etwa 1× im Monat", "etwa 1× pro Woche", "2× pro Woche oder öfter"]],
+  ["ernaehrung", "processed", "Wie oft gibt es Fertigprodukte, Süßes oder Softdrinks?", "choice", ["mehrmals täglich", "täglich", "ein paar Mal pro Woche", "selten", "nie"]],
+  ["ernaehrung", "alcohol", "Wie viele alkoholische Getränke trinkst du pro Woche?", "number", null, "Drinks/Woche"],
+  ["ernaehrung", "coffee", "Kaffee und Koffein: Wie viele Tassen am Tag und wann die letzte?", "text", null, null, "z. B. 3 Tassen, letzte um 14 Uhr"],
+  ["ernaehrung", "water", "Wie viel Wasser oder Tee trinkst du am Tag?", "number", null, "Liter"],
+  ["ernaehrung", "cravings", "Kennst du Heißhunger, Müdigkeit nach dem Essen, Blähungen oder andere Verdauungsthemen?", "textarea"],
+  ["ernaehrung", "cook", "Kochst du selbst? Wie oft isst du auswärts oder in der Kantine?", "textarea"],
+  ["ernaehrung", "typday", "Beschreib einen typischen Ernährungstag, von morgens bis abends.", "textarea", null, null, "Frühstück … Mittag … Snacks … Abendessen … Getränke"],
+  ["ernaehrung", "food_like", "Was isst du besonders gern, und was gar nicht?", "textarea"],
+  ["ernaehrung", "supps_now", "Welche Nahrungsergänzungsmittel nimmst du aktuell? Eine kurze Liste reicht, Details mit Foto erfasst du unter Stack.", "textarea"],
+
+  ["bewegung", "train_days", "An wie vielen Tagen pro Woche trainierst du?", "number", null, "Tage"],
+  ["bewegung", "strength", "Wie oft machst du Krafttraining pro Woche?", "choice", ["gar nicht", "1×", "2×", "3×", "4× oder öfter"]],
+  ["bewegung", "zone2", "Wie viel lockeres Ausdauertraining machst du pro Woche? Zone 2 heißt: Du kannst dabei noch in ganzen Sätzen reden.", "choice", ["keins", "unter 1 h", "1 bis 2 h", "2 bis 3 h", "über 3 h"]],
+  ["bewegung", "hiit", "Wie oft trainierst du hochintensiv (Intervalle, VO2max-Einheiten)?", "choice", ["nie", "1× pro Woche", "2× pro Woche oder öfter"]],
+  ["bewegung", "steps", "Wie viele Schritte machst du im Schnitt pro Tag?", "number", null, "Schritte"],
+  ["bewegung", "sitting", "Wie viele Stunden sitzt du pro Tag?", "number", null, "h"],
+  ["bewegung", "sports", "Welche Sportarten machst du, oder würdest du gern machen?", "textarea"],
+  ["bewegung", "injuries", "Hast du Verletzungen, Schmerzen oder Bewegungseinschränkungen?", "textarea"],
+  ["bewegung", "fitness", "Kennst du Leistungswerte von dir? VO2max, 5-km-Zeit, Liegestütze am Stück, Kniebeuge-Maximum, Griffkraft, Dead Hang …", "textarea"],
+
+  ["psyche", "stress", "Wie hoch ist dein Stress im Durchschnitt?", "scale", ["entspannt", "am Limit"]],
+  ["psyche", "mood", "Wie ist deine Stimmung meistens?", "scale", ["sehr niedrig", "sehr gut"]],
+  ["psyche", "focus", "Wie gut kannst du dich konzentrieren?", "scale", ["kaum", "messerscharf"]],
+  ["psyche", "energy", "Wie ist dein Energielevel über den Tag?", "scale", ["leer", "voller Energie"]],
+  ["psyche", "dips", "Wann hast du Energietiefs?", "multi", ["morgens", "vormittags", "nach dem Mittagessen", "nachmittags", "abends", "keine"]],
+  ["psyche", "stressors", "Was sind gerade deine größten Stressquellen?", "textarea"],
+  ["psyche", "recovery_mind", "Was tust du für deine mentale Erholung? Meditation, Atemübungen, Natur, Journaling, Gespräche …", "textarea"],
+  ["psyche", "social", "Wie zufrieden bist du mit deinen Beziehungen und sozialen Kontakten?", "scale", ["gar nicht", "sehr"]],
+  ["psyche", "screen", "Wie viel private Bildschirmzeit hast du pro Tag?", "number", null, "h"],
+  ["psyche", "purpose", "Was gibt dir Sinn und Antrieb?", "textarea"],
+  ["psyche", "mental_hist", "Gab es Phasen mit Burnout, Depression oder Angst? Das ist optional und hilft mir, Warnzeichen früh zu erkennen.", "textarea"],
+
+  ["substanzen", "nicotine", "Konsumierst du Nikotin (Zigaretten, Vape, Snus, Pouches)?", "choice", ["nie", "früher", "gelegentlich", "täglich"]],
+  ["substanzen", "other_subs", "Nimmst du andere Substanzen wie Cannabis, Schlafmittel oder Stimulanzien? Optional.", "textarea"],
+
+  ["tracking", "wearables", "Welche Geräte oder Apps nutzt du?", "multi", ["Apple Watch", "Oura", "Whoop", "Garmin", "Polar", "Fitbit", "Zuckersensor (CGM)", "Körperfettwaage", "Blutdruckmessgerät", "Keine"]],
+  ["tracking", "rhr", "Wie hoch ist dein Ruhepuls, falls bekannt?", "number", null, "bpm"],
+  ["tracking", "hrv", "Wie hoch ist deine HRV im Durchschnitt, falls bekannt?", "number", null, "ms"],
+  ["tracking", "labs_last", "Wann wurden zuletzt Blutwerte gemacht, und hast du den Befund? Die Werte trägst du unter Ich → Laborwerte ein.", "textarea"],
+
+  ["erholung", "sauna", "Wie oft gehst du in die Sauna?", "choice", ["nie", "1× pro Woche", "2 bis 3× pro Woche", "4× pro Woche oder öfter"]],
+  ["erholung", "cold", "Nutzt du Kälte, also kalt duschen oder Eisbaden?", "choice", ["nie", "gelegentlich", "regelmäßig"]],
+  ["erholung", "light", "Bekommst du morgens mindestens 10 Minuten Tageslicht draußen ab?", "choice", ["fast nie", "manchmal", "meistens", "täglich"]],
+  ["erholung", "nature", "Wie viel Zeit verbringst du pro Woche in der Natur?", "choice", ["unter 1 h", "1 bis 3 h", "3 bis 6 h", "über 6 h"]],
+  ["erholung", "anything", "Gibt es noch etwas, das ich über dich wissen sollte?", "textarea"],
+].map(([sec, id, q, type, opts, unit, ph]) => ({ sec, id, q, type, opts, unit, ph }));
+
+const DAILY_QS = [
+  "Was hat dir heute am meisten Energie gegeben, und was hat sie dir geraubt?",
+  "Wann hattest du zuletzt einen Tag, an dem du dich körperlich richtig stark gefühlt hast? Was war anders?",
+  "Welche Gewohnheit würdest du sofort ändern, wenn es ganz leicht wäre?",
+  "Was isst du, wenn du gestresst bist?",
+  "Wie fühlst du dich in der ersten Stunde nach dem Aufwachen?",
+  "Bei welcher Tätigkeit vergisst du die Zeit komplett?",
+  "Was hält dich abends am häufigsten vom Schlafengehen ab?",
+  "Welche Bewegung macht dir wirklich Spaß, auch ohne Ziel?",
+  "Mit wem verbringst du die meiste Zeit, und wie fühlst du dich danach?",
+  "Was war deine beste Trainingsphase im Leben, und warum hat sie geendet?",
+  "Wie reagiert dein Körper auf Alkohol am nächsten Tag?",
+  "Welche Lebensmittel bekommen dir schlecht, auch wenn du sie gern isst?",
+  "Wann am Tag bist du geistig am schärfsten?",
+  "Was stresst dich, obwohl du weißt, dass es eigentlich unwichtig ist?",
+  "Wie oft bist du in den letzten 4 Wochen krank oder angeschlagen gewesen?",
+  "Wie lange kannst du dich konzentrieren, bevor du zum Handy greifst?",
+  "Was würdest du mit einer zusätzlichen Stunde pro Tag machen?",
+  "Welche Mahlzeit gibt dir die meiste, welche die wenigste Energie?",
+  "Hast du Schmerzen oder Verspannungen, die du schon fast normal findest?",
+  "Was ist dein größter Zeitfresser in einer normalen Woche?",
+  "Wie gehst du nach einem richtig schlechten Tag damit um?",
+  "Welche gesundheitliche Sorge beschäftigt dich insgeheim am meisten?",
+  "Wie oft lachst du richtig?",
+  "Wie sieht dein ideales Wochenende aus, gesundheitlich betrachtet?",
+  "Wann warst du zuletzt richtig außer Atem, und wobei?",
+  "Was würde dein bester Freund über deinen Lebensstil sagen?",
+  "Welche Routine hat bei dir schon einmal richtig gut funktioniert?",
+  "Wie viel Zeit verbringst du draußen bei Tageslicht an einem normalen Werktag?",
+  "Wie fühlt sich dein Körper nach 2 Stunden Sitzen an?",
+  "Worauf bist du gesundheitlich gerade stolz?",
+];
+
+/* ================================================================
+   LAB MARKERS — Longevity-Zielbereiche zur Orientierung, keine Diagnose
+   ================================================================ */
+const MARKERS = [
+  { id: "apob", name: "ApoB", unit: "mg/dL", hi: 80, note: "Zahl der atherogenen Partikel. Ambitioniert unter 60." },
+  { id: "ldl", name: "LDL-Cholesterin", unit: "mg/dL", hi: 100 },
+  { id: "hdl", name: "HDL-Cholesterin", unit: "mg/dL", lo: 50 },
+  { id: "tg", name: "Triglyceride", unit: "mg/dL", hi: 100 },
+  { id: "lpa", name: "Lp(a)", unit: "nmol/L", hi: 75, note: "Genetisch bestimmt, einmal messen reicht meist." },
+  { id: "hba1c", name: "HbA1c", unit: "%", hi: 5.4 },
+  { id: "glu", name: "Nüchternglukose", unit: "mg/dL", lo: 70, hi: 90 },
+  { id: "ins", name: "Nüchterninsulin", unit: "µU/mL", hi: 8 },
+  { id: "crp", name: "hs-CRP", unit: "mg/L", hi: 1, note: "Entzündungsmarker. Nicht während eines Infekts messen." },
+  { id: "vitd", name: "Vitamin D (25-OH)", unit: "ng/mL", lo: 40, hi: 60, note: "In nmol/L: 100 bis 150." },
+  { id: "b12", name: "Vitamin B12", unit: "pg/mL", lo: 400 },
+  { id: "ferr", name: "Ferritin", unit: "ng/mL", lo: 50, hi: 150 },
+  { id: "hcy", name: "Homocystein", unit: "µmol/L", hi: 10 },
+  { id: "o3", name: "Omega-3-Index", unit: "%", lo: 8 },
+  { id: "tsh", name: "TSH", unit: "mU/L", lo: 0.5, hi: 2.5 },
+  { id: "testo", name: "Testosteron gesamt", unit: "ng/dL", lo: 500, note: "Bereich für Männer. Für Frauen gelten andere Werte." },
+  { id: "egfr", name: "eGFR (Nierenfunktion)", unit: "mL/min", lo: 90 },
+  { id: "alt", name: "ALT / GPT", unit: "U/L", hi: 30 },
+  { id: "ggt", name: "GGT", unit: "U/L", hi: 30 },
+  { id: "uric", name: "Harnsäure", unit: "mg/dL", hi: 5.5 },
+  { id: "mg", name: "Magnesium (Serum)", unit: "mmol/L", lo: 0.85 },
+  { id: "other", name: "Anderer Wert", unit: "" },
+];
+const markerById = (id) => MARKERS.find(m => m.id === id) || MARKERS[MARKERS.length - 1];
+function labStatus(l) {
+  const m = markerById(l.marker);
+  if (m.id === "other" || l.value == null) return null;
+  if (m.lo != null && l.value < m.lo) return "warn";
+  if (m.hi != null && l.value > m.hi) return "warn";
+  return "good";
+}
+const rangeText = (m) => m.lo != null && m.hi != null ? `${m.lo} bis ${m.hi}` : m.lo != null ? `über ${m.lo}` : m.hi != null ? `unter ${m.hi}` : "";
+
+const SUPP_TIMES = ["morgens nüchtern", "zum Frühstück", "mittags", "vor dem Training", "nach dem Training", "zum Abendessen", "vor dem Schlafen"];
+const SUPP_FREQ = ["täglich", "an Trainingstagen", "mehrmals pro Woche", "wöchentlich", "bei Bedarf", "als Kur"];
+const SUPP_FORMS = ["Kapsel", "Tablette", "Softgel", "Pulver", "Tropfen", "Flüssig", "Gummi", "Spray", "Sonstiges"];
+const MEAL_KINDS = ["Frühstück", "Mittagessen", "Abendessen", "Snack", "Shake", "Getränk"];
+const TRAIN_TYPES = ["Ruhetag", "Kraft", "Zone 2", "HIIT / Intervalle", "Sportart", "Mobilität / Yoga", "Spaziergang"];
+
+/* ================================================================
+   APP SHELL
+   ================================================================ */
+const app = $("#app");
+let TAB = "heute";
+let SUB = { ich: "fragen" };
+
+const ICONS = {
+  heute: "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z",
+  checkin: "M4 12l4 4 12-12M4 20h16",
+  ernaehrung: "M7 3v8a3 3 0 0 0 6 0V3M10 3v18M17 3c-2 2-2 6 0 8v10",
+  stack: "M10.5 3.5l-7 7a4.95 4.95 0 0 0 7 7l7-7a4.95 4.95 0 0 0-7-7zM7 7l7 7",
+  coach: "M4 5h16v11H9l-5 4z M8 10h8M8 13h5",
+  ich: "M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 4-6 8-6s8 2 8 6",
+};
+const TABS = [["heute", "Heute"], ["checkin", "Check-in"], ["ernaehrung", "Ernährung"], ["stack", "Stack"], ["coach", "Coach"], ["ich", "Ich"]];
+
+function mark() {
+  const s = svg("svg", { viewBox: "0 0 32 32", "aria-hidden": "true" });
+  s.append(svg("rect", { x: "3", y: "3", width: "26", height: "26", rx: "8", fill: "var(--accent)" }));
+  s.append(svg("path", { d: "M8 17h4l2-5 3 9 2.5-6H24", fill: "none", stroke: "var(--accent-ink)", "stroke-width": "2.2", "stroke-linecap": "round", "stroke-linejoin": "round" }));
+  return s;
+}
+function tabIcon(id) { const s = svg("svg", { viewBox: "0 0 24 24", "aria-hidden": "true" }); s.append(svg("path", { d: ICONS[id] })); return s; }
+
+function shell() {
+  app.innerHTML = "";
+  const top = el("header", { class: "top" }, el("div", { class: "wrap" },
+    el("div", { class: "brand" }, mark(), el("span", { text: "Longevity-Tresor" })),
+    el("div", { class: "row" },
+      el("span", { class: "store-chip", title: Store.mode === "cloud" ? "Verschlüsselt in deinem privaten Claude-Speicher" : "Verschlüsselt nur in diesem Browser", text: Store.mode === "cloud" ? "privat · synchron" : "privat · dieses Gerät" }),
+      el("button", { class: "btn sm", onclick: lock, "aria-label": "Tresor sperren", text: "Sperren" }))));
+  const main = el("main", { id: "view", class: "wrap" });
+  const nav = el("nav", { class: "tabs", "aria-label": "Bereiche" }, el("div", { class: "inner" },
+    TABS.map(([id, name]) => el("button", { class: "tab", "aria-current": TAB === id ? "page" : null, onclick: () => go(id) }, tabIcon(id), name))));
+  app.append(top, main, nav);
+  render();
+}
+function go(tab, sub) {
+  TAB = tab; if (sub) SUB[tab] = sub;
+  document.querySelectorAll(".tab").forEach((b, i) => b.setAttribute("aria-current", TABS[i][0] === tab ? "page" : "false"));
+  render(); window.scrollTo(0, 0);
+}
+function render() {
+  const v = $("#view"); if (!v || !S) return;
+  v.innerHTML = "";
+  const fn = { heute: viewToday, checkin: viewCheckin, ernaehrung: viewNutrition, stack: viewStack, coach: viewCoach, ich: viewMe }[TAB];
+  v.append(fn());
+}
+
+/* ---------- reusable inputs ---------- */
+function chipGroup(opts, selected, multi, onChange) {
+  const sel = new Set(multi ? (selected || []) : (selected ? [selected] : []));
+  const wrap = el("div", { class: "chips", role: multi ? "group" : "radiogroup" });
+  opts.forEach(o => {
+    const b = el("button", { type: "button", class: "chip", "aria-pressed": sel.has(o) ? "true" : "false", text: o, onclick: () => {
+      if (multi) { sel.has(o) ? sel.delete(o) : sel.add(o); }
+      else { const was = sel.has(o); sel.clear(); if (!was) sel.add(o); }
+      wrap.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", sel.has(c.textContent) ? "true" : "false"));
+      onChange(multi ? [...sel] : ([...sel][0] || null));
+    } });
+    wrap.append(b);
+  });
+  return wrap;
+}
+function scaleInput(value, ends, onChange) {
+  const wrap = el("div", { class: "stack", style: "gap:6px" });
+  const row = el("div", { class: "scale", role: "radiogroup" });
+  SC.forEach(n => row.append(el("button", { type: "button", "aria-pressed": String(value) === n ? "true" : "false", text: n, onclick: () => {
+    const was = String(value) === n; value = was ? null : +n;
+    row.querySelectorAll("button").forEach(b => b.setAttribute("aria-pressed", String(value) === b.textContent ? "true" : "false"));
+    onChange(value);
+  } })));
+  wrap.append(row);
+  if (ends) wrap.append(el("div", { class: "scale-ends" }, el("span", { text: "1 · " + ends[0] }), el("span", { text: ends[1] + " · 10" })));
+  return wrap;
+}
+function numIn(id, value, unit, ph, step) {
+  return el("div", { class: "unit-in" }, el("input", { type: "number", id, inputmode: "decimal", step: step || "any", value: value ?? "", placeholder: ph || "" }), unit ? el("span", { class: "u", text: unit }) : null);
+}
+function field(label, input, hint) {
+  const ctl = input.matches && (input.matches("input,select,textarea") || input.classList.contains("unit-in"));
+  return el(ctl ? "label" : "div", { class: "field" }, el("span", { text: label }), input, hint ? el("small", { class: "muted", text: hint }) : null);
+}
+
+/* ---------- sparkline ---------- */
+function spark(points, fixed) {
+  const W = 140, H = 34, P = 3;
+  const vals = points.map(p => p.v).filter(v => v != null);
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, preserveAspectRatio: "none", role: "img" });
+  s.append(svg("line", { x1: 0, x2: W, y1: H - P, y2: H - P, class: "spark-grid" }));
+  if (!vals.length) return s;
+  let lo = fixed ? fixed[0] : Math.min(...vals), hi = fixed ? fixed[1] : Math.max(...vals);
+  if (hi === lo) { hi += 1; lo -= 1; }
+  const x = i => P + (i * (W - 2 * P)) / Math.max(1, points.length - 1);
+  const y = v => H - P - ((v - lo) / (hi - lo)) * (H - 2 * P);
+  let d = "", area = "", seg = [];
+  const flushSeg = () => {
+    if (!seg.length) return;
+    d += seg.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ") + " ";
+    if (seg.length > 1) area += `M${seg[0][0].toFixed(1)} ${H - P} ` + seg.map(p => "L" + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ") + ` L${seg[seg.length - 1][0].toFixed(1)} ${H - P} Z `;
+    seg = [];
+  };
+  points.forEach((p, i) => { if (p.v == null) flushSeg(); else seg.push([x(i), y(p.v)]); });
+  flushSeg();
+  if (area) s.append(svg("path", { d: area, class: "spark-area" }));
+  s.append(svg("path", { d, class: "spark-line" }));
+  for (let i = points.length - 1; i >= 0; i--) if (points[i].v != null) { s.append(svg("circle", { cx: x(i), cy: y(points[i].v), r: 2.6, class: "spark-dot" })); break; }
+  return s;
+}
+function series(key, days = 14) {
+  const out = []; const t = todayStr();
+  for (let i = days - 1; i >= 0; i--) { const d = addDays(t, -i); const c = checkinOf(d); out.push({ d, v: c ? num(c[key]) : null }); }
+  return out;
+}
+function avg(arr) { const v = arr.map(p => p.v).filter(x => x != null); return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null; }
+
+/* ---------- profile helpers ---------- */
+const A = () => S.profile.answers;
+function answeredCount() { return Q.filter(q => isAnswered(q.id)).length; }
+function isAnswered(id) { const v = A()[id]; return v != null && v !== "" && !(Array.isArray(v) && !v.length); }
+function firstOpen(sec) { return Q.findIndex(q => (!sec || q.sec === sec) && !isAnswered(q.id) && !S.profile.skipped[q.id]); }
+function age() { const b = A().birth; if (!b) return null; const d = new Date(b), n = new Date(); let a = n.getFullYear() - d.getFullYear(); if (n < new Date(n.getFullYear(), d.getMonth(), d.getDate())) a--; return a; }
+function weight() { for (let i = 0; i < 30; i++) { const c = checkinOf(addDays(todayStr(), -i)); if (c && num(c.weight)) return num(c.weight); } return num(A().weight); }
+function proteinTarget() { const w = weight(); return w ? Math.round(w * 1.8) : null; }
+function fmtAnswer(q, v) { if (Array.isArray(v)) return v.join(", "); return q.unit ? `${v} ${q.unit}` : String(v); }
+
+/* ================================================================
+   VIEW: HEUTE
+   ================================================================ */
+function viewToday() {
+  const t = todayStr(), name = A().name;
+  const h = new Date().getHours();
+  const greet = h < 11 ? "Guten Morgen" : h < 17 ? "Hallo" : "Guten Abend";
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "stack", style: "gap:4px" }, el("span", { class: "label", text: fmtLong(t) }), el("h1", { text: greet + (name ? ", " + name : "") })));
+
+  const done = answeredCount(), total = Q.length;
+  if (done < total) {
+    const rest = Q.filter(q => !isAnswered(q.id) && !S.profile.skipped[q.id]).length;
+    box.append(el("div", { class: "card hl" },
+      el("div", { class: "row spread" }, el("h2", { text: "Erstgespräch" }), el("span", { class: "num muted small", text: `${done} / ${total}` })),
+      el("div", { class: "progress" }, el("i", { style: `width:${Math.round(done / total * 100)}%` })),
+      el("p", { text: done === 0 ? "Bevor ich dich beraten kann, muss ich dich kennenlernen. Ich stelle dir Frage für Frage, du kannst jederzeit pausieren. Alles wird sofort verschlüsselt gespeichert." : rest ? `Noch ${rest} offene Fragen. Je vollständiger dein Bild, desto genauer meine Empfehlungen.` : "Du hast ein paar Fragen übersprungen. Du kannst sie jederzeit nachholen." }),
+      el("button", { class: "btn primary", onclick: () => openInterview(rest ? firstOpen() : Q.findIndex(q => !isAnswered(q.id))), text: done === 0 ? "Erstgespräch starten" : "Weiter fragen" })));
+  }
+
+  const c = checkinOf(t);
+  box.append(el("div", { class: "card" },
+    el("div", { class: "row spread" }, el("h2", { text: "Tages-Check-in" }), c ? el("span", { class: "pill good", text: "erledigt" }) : el("span", { class: "pill warn", text: "offen" })),
+    c ? el("div", { class: "chips" }, ...[["Schlaf", c.sleep_h, "h"], ["Energie", c.energy, "/10"], ["Stimmung", c.mood, "/10"], ["Stress", c.stress, "/10"], ["HRV", c.hrv, "ms"]].filter(x => x[1] != null && x[1] !== "").map(x => el("span", { class: "pill neutral", text: `${x[0]} ${x[1]}${x[2]}` })))
+      : el("p", { class: "muted", text: "Zwei Minuten: Schlaf, Energie, Stimmung, Training. Daraus erkenne ich deine Muster." }),
+    el("button", { class: c ? "btn" : "btn primary", onclick: () => go("checkin"), text: c ? "Check-in bearbeiten" : "Check-in machen" })));
+
+  const tr = el("div", { class: "trends" });
+  [["Schlaf", "sleep_h", "h"], ["Energie", "energy", "/10", [0, 10]], ["Stimmung", "mood", "/10", [0, 10]], ["Stress", "stress", "/10", [0, 10]], ["HRV", "hrv", "ms"], ["Ruhepuls", "rhr", "bpm"]].forEach(([lab, key, unit, fixed]) => {
+    const s = series(key); const a = avg(s); const last = [...s].reverse().find(p => p.v != null);
+    tr.append(el("div", { class: "trend" }, el("span", { class: "label", text: lab }),
+      el("span", { class: "v" }, last ? String(last.v) : "–", el("small", { text: last ? unit : "" })),
+      spark(s, fixed), el("span", { class: "small muted num", text: a != null ? `Ø ${a.toFixed(1)} · 14 Tage` : "noch keine Daten" })));
+  });
+  box.append(el("div", { class: "stack", style: "gap:8px" }, el("span", { class: "label", text: "Deine letzten 14 Tage" }), tr));
+
+  const meals = mealsOf(t), pt = proteinTarget();
+  const prot = meals.reduce((a, m) => a + (num(m.protein) || 0), 0);
+  const taken = takenOf(t), daily = S.supps.filter(s => s.active !== false && s.freq === "täglich");
+  box.append(el("div", { class: "grid2" },
+    el("button", { class: "card", style: "text-align:left;cursor:pointer", onclick: () => go("ernaehrung") },
+      el("span", { class: "label", text: "Protein heute" }),
+      el("span", { class: "num", style: "font-size:1.3rem;font-weight:600", text: `${Math.round(prot)} g` + (pt ? ` / ${pt} g` : "") }),
+      el("div", { class: "meter" }, el("div", { class: "bar" }, el("i", { style: `width:${pt ? Math.min(100, prot / pt * 100) : 0}%` })))),
+    el("button", { class: "card", style: "text-align:left;cursor:pointer", onclick: () => go("stack") },
+      el("span", { class: "label", text: "Supplements heute" }),
+      el("span", { class: "num", style: "font-size:1.3rem;font-weight:600", text: `${daily.filter(s => taken.includes(s.id)).length} / ${daily.length}` }),
+      el("div", { class: "meter" }, el("div", { class: "bar" }, el("i", { style: `width:${daily.length ? daily.filter(s => taken.includes(s.id)).length / daily.length * 100 : 0}%` }))))));
+
+  // question of the day
+  const dayIdx = Math.floor(new Date(t + "T12:00:00").getTime() / 86400000) % DAILY_QS.length;
+  const dq = DAILY_QS[dayIdx], prev = S.profile.dailyQ[t];
+  const ta = el("textarea", { id: "dq", placeholder: "Deine Antwort …" }, prev ? prev.a : "");
+  box.append(el("div", { class: "card" },
+    el("span", { class: "label", text: "Frage des Tages" }),
+    el("p", { class: "iv-q", style: "font-size:1.15rem", text: dq }),
+    ta,
+    el("div", { class: "row" }, el("button", { class: "btn", onclick: () => {
+      const a = ta.value.trim(); if (!a) return;
+      S.profile.dailyQ[t] = { q: dq, a }; save("profile");
+      const fi = S.facts.findIndex(f => f.src === "dq-" + t);
+      const fact = { id: uid(), cat: "Frage des Tages", text: `${dq} → ${a}`, date: t, src: "dq-" + t };
+      if (fi >= 0) S.facts[fi] = fact; else S.facts.push(fact);
+      save("facts"); toast("Antwort gespeichert");
+    }, text: prev ? "Antwort aktualisieren" : "Antwort speichern" }), el("button", { class: "btn ghost", onclick: () => go("coach"), text: "Mit dem Coach vertiefen" }))));
+  return box;
+}
+
+/* ================================================================
+   INTERVIEW
+   ================================================================ */
+let IV = null;
+function openInterview(index, onlySec) {
+  if (index < 0) index = 0;
+  IV = { i: index, sec: onlySec || null };
+  renderInterview();
+}
+function renderInterview() {
+  closeSheet();
+  const q = Q[IV.i];
+  if (!q || (IV.sec && q.sec !== IV.sec)) { IV = null; toast(answeredCount() === Q.length ? "Erstgespräch vollständig. Danke!" : "Abschnitt gespeichert"); render(); return; }
+  const sec = SECTIONS.find(s => s.id === q.sec);
+  const secQs = Q.filter(x => x.sec === q.sec), pos = secQs.indexOf(q) + 1;
+  let val = A()[q.id];
+  let input;
+  if (q.type === "choice") input = chipGroup(q.opts, val, false, v => { val = v; });
+  else if (q.type === "multi") input = chipGroup(q.opts, val, true, v => { val = v; });
+  else if (q.type === "scale") input = scaleInput(val, q.opts, v => { val = v; });
+  else if (q.type === "textarea") input = el("textarea", { id: "iv-in", placeholder: q.ph || "" }, val || "");
+  else if (q.type === "number") input = numIn("iv-in", val, q.unit, q.ph);
+  else input = el("div", { class: "unit-in" }, el("input", { type: q.type, id: "iv-in", value: val ?? "", placeholder: q.ph || "" }), q.unit ? el("span", { class: "u", text: q.unit }) : null);
+
+  const read = () => {
+    if (["choice", "multi", "scale"].includes(q.type)) return val;
+    const e = $("#iv-in"); const v = e ? e.value.trim() : "";
+    return q.type === "number" ? num(v) : v;
+  };
+  const commit = () => {
+    const v = read();
+    if (v == null || v === "" || (Array.isArray(v) && !v.length)) delete A()[q.id];
+    else { A()[q.id] = v; delete S.profile.skipped[q.id]; }
+    if (q.id === "weight" && num(v)) S.profile.answers.weight = num(v);
+    save("profile");
+  };
+  const next = (skip) => {
+    if (skip) { S.profile.skipped[q.id] = true; save("profile"); } else commit();
+    IV.i++;
+    if (!IV.sec && IV.i < Q.length && Q[IV.i].sec !== q.sec) toast(`${sec.name} gespeichert`);
+    renderInterview();
+  };
+  const content = el("div", { class: "stack" },
+    el("div", { class: "row spread" }, el("span", { class: "label", text: `${sec.name} · ${pos} von ${secQs.length}` }), el("span", { class: "num small muted", text: `${answeredCount()} / ${Q.length}` })),
+    el("div", { class: "progress" }, el("i", { style: `width:${Math.round(IV.i / Q.length * 100)}%` })),
+    el("p", { class: "iv-q", id: "iv-title", text: q.q }),
+    input,
+    q.type === "multi" ? el("small", { class: "muted", text: "Mehrfachauswahl möglich." }) : null,
+    el("div", { class: "iv-nav" },
+      el("button", { class: "btn", disabled: IV.i === 0 || (IV.sec && Q[IV.i - 1]?.sec !== IV.sec), onclick: () => { commit(); IV.i--; renderInterview(); }, text: "Zurück" }),
+      el("div", { class: "row" },
+        el("button", { class: "btn ghost", onclick: () => next(true), text: "Überspringen" }),
+        el("button", { class: "btn primary", onclick: () => next(false), text: "Weiter" }))),
+    el("button", { class: "btn ghost", onclick: () => { commit(); IV = null; closeSheet(); render(); toast("Pausiert. Deine Antworten sind gespeichert."); }, text: "Pause, später weitermachen" }));
+  openSheet(content, () => { commit(); IV = null; render(); });
+  const f = $("#iv-in"); if (f && window.matchMedia("(min-width: 700px)").matches) f.focus();
+  if (f && f.tagName === "INPUT") f.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); next(false); } });
+}
+
+/* ---------- sheet ---------- */
+let sheetClose = null;
+function openSheet(content, onClose) {
+  closeSheet(true);
+  const bg = el("div", { class: "sheet-bg", onclick: (e) => { if (e.target === bg) dismissSheet(); } },
+    el("div", { class: "sheet", role: "dialog", "aria-modal": "true" }, el("div", { class: "wrap" }, content)));
+  document.body.append(bg);
+  sheetClose = onClose || null;
+}
+function closeSheet() { document.querySelectorAll(".sheet-bg").forEach(x => x.remove()); sheetClose = null; }
+// run the close callback while the sheet's inputs still exist, so it can read them
+function dismissSheet() { const c = sheetClose; sheetClose = null; if (c) c(); closeSheet(); }
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.querySelector(".sheet-bg")) dismissSheet(); });
+
+/* ================================================================
+   VIEW: CHECK-IN
+   ================================================================ */
+let CI_DATE = null;
+function viewCheckin() {
+  const date = CI_DATE || todayStr();
+  const prev = checkinOf(date) || {};
+  const d = Object.assign({}, prev);
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "row spread" }, el("h1", { text: "Check-in" }),
+    el("input", { type: "date", id: "ci-date", value: date, max: todayStr(), style: "width:auto", onchange: (e) => { CI_DATE = e.target.value || null; render(); } })));
+  box.append(el("p", { class: "muted", text: date === todayStr() ? "Wie geht es dir heute? Alles ist optional, fülle aus, was du weißt." : "Nachtrag für " + fmtLong(date) }));
+
+  const sl = el("div", { class: "card" }, el("h3", { text: "Schlaf letzte Nacht" }),
+    el("div", { class: "grid2" }, field("Schlafdauer", numIn("ci-sleep", d.sleep_h, "h", "7.5")), field("Zu Bett", el("input", { type: "time", id: "ci-bed", value: d.bed || "" }))),
+    field("Schlafqualität", scaleInput(d.sleep_q, ["miserabel", "perfekt"], v => d.sleep_q = v)));
+  const mind = el("div", { class: "card" }, el("h3", { text: "Kopf & Körper" }),
+    field("Energie", scaleInput(d.energy, ["leer", "voll"], v => d.energy = v)),
+    field("Stimmung", scaleInput(d.mood, ["tief", "top"], v => d.mood = v)),
+    field("Stress", scaleInput(d.stress, ["entspannt", "am Limit"], v => d.stress = v)),
+    field("Fokus", scaleInput(d.focus, ["zerstreut", "messerscharf"], v => d.focus = v)));
+  const tr = el("div", { class: "card" }, el("h3", { text: "Bewegung" }),
+    field("Training", chipGroup(TRAIN_TYPES, d.train || [], true, v => d.train = v)),
+    el("div", { class: "grid2" }, field("Trainingsdauer", numIn("ci-tmin", d.train_min, "min")), field("Schritte", numIn("ci-steps", d.steps, "", "8000", "1"))));
+  const bio = el("div", { class: "card" }, el("h3", { text: "Messwerte" }),
+    el("div", { class: "grid3" }, field("HRV", numIn("ci-hrv", d.hrv, "ms")), field("Ruhepuls", numIn("ci-rhr", d.rhr, "bpm")), field("Gewicht", numIn("ci-w", d.weight, "kg"))),
+    el("div", { class: "grid2" }, field("Alkohol", numIn("ci-alc", d.alcohol, "Drinks", "0", "1")), field("Koffein", numIn("ci-caf", d.caffeine, "Tassen", "", "1"))),
+    el("small", { class: "muted", text: "Werte aus Oura, Whoop, Garmin oder Apple Watch einfach abschreiben." }));
+  const note = el("div", { class: "card" }, el("h3", { text: "Notiz" }),
+    el("textarea", { id: "ci-note", placeholder: "Symptome, Besonderheiten, was hat heute gut getan?" }, d.note || ""));
+  box.append(sl, mind, tr, bio, note);
+  box.append(el("button", { class: "btn primary block", onclick: () => {
+    const g = id => { const e = $("#" + id); return e ? e.value : ""; };
+    Object.assign(d, { sleep_h: num(g("ci-sleep")), bed: g("ci-bed") || null, train_min: num(g("ci-tmin")), steps: num(g("ci-steps")), hrv: num(g("ci-hrv")), rhr: num(g("ci-rhr")), weight: num(g("ci-w")), alcohol: num(g("ci-alc")), caffeine: num(g("ci-caf")), note: g("ci-note").trim(), at: new Date().toISOString() });
+    month(monthOf(date)).checkins[date] = d; save("m-" + monthOf(date));
+    toast("Check-in gespeichert"); CI_DATE = null; go("heute");
+  }, text: "Check-in speichern" }));
+  return box;
+}
+
+/* ================================================================
+   VIEW: ERNÄHRUNG
+   ================================================================ */
+let NU_DATE = null;
+function viewNutrition() {
+  const date = NU_DATE || todayStr();
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "row spread" }, el("h1", { text: "Ernährung" }),
+    el("input", { type: "date", id: "nu-date", value: date, max: todayStr(), style: "width:auto", onchange: e => { NU_DATE = e.target.value || null; render(); } })));
+
+  const nq = Q.filter(q => q.sec === "ernaehrung"), nd = nq.filter(q => isAnswered(q.id)).length;
+  if (nd < nq.length) box.append(el("div", { class: "card hl" },
+    el("div", { class: "row spread" }, el("h3", { text: "Ernährungs-Fragebogen" }), el("span", { class: "num small muted", text: `${nd} / ${nq.length}` })),
+    el("p", { text: "Damit ich deine Ernährung bewerten kann, brauche ich ein Bild deiner Gewohnheiten: Muster, Protein, Pflanzenvielfalt, Timing, Getränke." }),
+    el("button", { class: "btn primary", onclick: () => { const i = firstOpen("ernaehrung"); openInterview(i >= 0 ? i : Q.findIndex(q => q.sec === "ernaehrung"), "ernaehrung"); }, text: nd ? "Fragebogen fortsetzen" : "Fragebogen starten" })));
+
+  const meals = mealsOf(date);
+  const sum = k => meals.reduce((a, m) => a + (num(m[k]) || 0), 0);
+  const pt = proteinTarget(), prot = sum("protein");
+  const plants = new Set(meals.flatMap(m => m.plants || []).map(p => p.toLowerCase()));
+  const water = waterOf(date);
+  box.append(el("div", { class: "card" },
+    el("div", { class: "row spread" }, el("h3", { text: "Tagesbilanz" }), el("span", { class: "small muted", text: fmtDate(date) })),
+    el("div", { class: "meter" },
+      el("div", { class: "row spread small" }, el("span", { text: "Protein" }), el("span", { class: "num", text: `${Math.round(prot)} g${pt ? " von " + pt + " g" : ""}` })),
+      el("div", { class: "bar" }, el("i", { style: `width:${pt ? Math.min(100, prot / pt * 100) : 0}%` })),
+      pt ? el("small", { class: "muted", text: "Richtwert 1,8 g pro kg Körpergewicht für Muskelerhalt und Leistung." }) : el("small", { class: "muted", text: "Trag dein Gewicht im Erstgespräch ein, dann berechne ich dein Protein-Ziel." })),
+    el("dl", { class: "kv" },
+      el("dt", { text: "Kalorien (geschätzt)" }), el("dd", { text: sum("kcal") ? Math.round(sum("kcal")) + " kcal" : "–" }),
+      el("dt", { text: "Ballaststoffe" }), el("dd", { text: sum("fiber") ? Math.round(sum("fiber")) + " g" : "–" }),
+      el("dt", { text: "Verschiedene Pflanzen" }), el("dd", { text: plants.size || "–" }),
+      el("dt", { text: "Essensfenster" }), el("dd", { text: meals.length ? `${meals[0].time || "?"} – ${meals[meals.length - 1].time || "?"}` : "–" })),
+    el("div", { class: "row spread" }, el("span", { text: "Wasser" }),
+      el("div", { class: "row" },
+        el("button", { class: "btn sm", "aria-label": "Ein Glas weniger", onclick: () => { const m = month(monthOf(date)); m.water[date] = Math.max(0, (m.water[date] || 0) - 1); save("m-" + monthOf(date)); render(); }, text: "−" }),
+        el("span", { class: "num", text: `${water} × 0,25 l = ${(water * 0.25).toFixed(2).replace(".", ",")} l` }),
+        el("button", { class: "btn sm", "aria-label": "Ein Glas mehr", onclick: () => { const m = month(monthOf(date)); m.water[date] = (m.water[date] || 0) + 1; save("m-" + monthOf(date)); render(); }, text: "+" })))));
+
+  const list = el("div", { class: "list" });
+  meals.forEach(m => {
+    const img = el("img", { class: "thumb", alt: "" });
+    if (m.img) loadImage(m.img).then(d => d && (img.src = d));
+    list.append(el("div", { class: "item" }, m.img ? img : el("div", { class: "thumb ph", text: m.kind || "" }),
+      el("div", { class: "grow" },
+        el("div", { class: "row spread" }, el("strong", { text: `${m.time || ""} ${m.kind || ""}`.trim() }), m.quality ? el("span", { class: "pill " + (m.quality >= 7 ? "good" : m.quality >= 4 ? "warn" : "bad"), text: `Qualität ${m.quality}/10` }) : null),
+        el("p", { class: "small", text: m.desc || "" }),
+        el("p", { class: "small muted num", text: [m.protein != null && m.protein !== "" ? `P ${m.protein} g` : null, m.kcal ? `${m.kcal} kcal` : null, m.carbs ? `KH ${m.carbs} g` : null, m.fat ? `F ${m.fat} g` : null].filter(Boolean).join(" · ") }),
+        m.note ? el("p", { class: "small muted", text: m.note }) : null),
+      el("button", { class: "btn sm ghost", onclick: () => mealSheet(date, m), text: "Bearbeiten" })));
+  });
+  box.append(el("div", { class: "card" },
+    el("div", { class: "row spread" }, el("h3", { text: "Mahlzeiten" }), el("button", { class: "btn primary sm", onclick: () => mealSheet(date), text: "Mahlzeit erfassen" })),
+    meals.length ? list : el("p", { class: "muted", text: "Noch nichts erfasst. Ein Foto oder eine kurze Beschreibung reicht, Claude schätzt Protein und Kalorien." })));
+
+  const prof = nq.filter(q => isAnswered(q.id));
+  if (prof.length) box.append(el("details", { class: "card" }, el("summary", { text: "Dein Ernährungsprofil" }),
+    el("dl", { class: "kv", style: "grid-template-columns:1fr" }, prof.map(q => [el("dt", { text: q.q }), el("dd", { class: "ans", style: "text-align:left;font-family:var(--f-body)", text: fmtAnswer(q, A()[q.id]) })])),
+    el("button", { class: "btn sm", onclick: () => openInterview(Q.findIndex(q => q.sec === "ernaehrung"), "ernaehrung"), text: "Antworten bearbeiten" })));
+  return box;
+}
+
+function mealSheet(date, existing) {
+  const m = Object.assign({ id: uid(), date, time: date === todayStr() ? nowTime() : "12:00", kind: null }, existing || {});
+  let photo = null;
+  const prev = el("img", { class: "photo-prev", alt: "Foto der Mahlzeit", hidden: true });
+  if (m.img) loadImage(m.img).then(d => { if (d) { prev.src = d; prev.hidden = false; } });
+  const status = el("p", { class: "small muted", "aria-live": "polite" });
+  const estBtn = el("button", { class: "btn", type: "button", text: "Mit Claude schätzen" });
+  const fileIn = el("input", { type: "file", accept: "image/*", id: "meal-photo", "aria-label": "Foto wählen" });
+  fileIn.onchange = async () => {
+    const f = fileIn.files[0]; if (!f) return;
+    try { photo = await prepPhoto(f); prev.src = photo.store; prev.hidden = false; } catch { toast("Das Bild konnte nicht geladen werden."); }
+  };
+  const g = id => $("#" + id).value;
+  estBtn.onclick = async () => {
+    const sample = await getSample();
+    if (!sample || sampleBlocked) { status.textContent = "Claude ist hier nicht verfügbar. Trag die Werte selbst ein."; return; }
+    const desc = g("meal-desc").trim();
+    if (!desc && !photo) { status.textContent = "Beschreib die Mahlzeit oder füge ein Foto hinzu."; return; }
+    estBtn.disabled = true; status.textContent = "Claude schätzt …";
+    try {
+      const lim = await sample.limits().catch(() => null);
+      const opts = {};
+      if (photo && lim && lim.images) opts.images = [photo.blob];
+      const r = await sample.json(`Schätze die Nährwerte dieser Mahlzeit realistisch (Portion wie beschrieben oder auf dem Foto sichtbar).
+Beschreibung: ${desc || "(siehe Foto)"}
+${opts.images ? "Ein Foto der Mahlzeit ist angehängt." : ""}
+Antworte NUR mit JSON: {"protein_g": number, "kcal": number, "carbs_g": number, "fat_g": number, "fiber_g": number, "plants": [string] (verschiedene pflanzliche Zutaten, deutsch, Singular), "quality": number (1-10, Longevity-Sicht: Protein, Ballaststoffe, Verarbeitungsgrad, Zucker), "description": string (kurze Beschreibung, deutsch), "note": string (ein konkreter Verbesserungstipp, deutsch, max. 20 Wörter)}`, Object.assign({ modelTier: "default" }, opts));
+      if (r && typeof r === "object") {
+        const set = (id, v) => { if (v != null && !isNaN(+v)) $("#" + id).value = Math.round(+v); };
+        set("meal-p", r.protein_g); set("meal-kcal", r.kcal); set("meal-c", r.carbs_g); set("meal-f", r.fat_g); set("meal-fi", r.fiber_g);
+        if (!desc && r.description) $("#meal-desc").value = String(r.description);
+        m.plants = Array.isArray(r.plants) ? r.plants.map(String).slice(0, 40) : [];
+        m.quality = num(r.quality) ? Math.max(1, Math.min(10, Math.round(r.quality))) : null;
+        m.note = r.note ? String(r.note) : "";
+        m.est = true;
+        status.textContent = (m.note ? "Tipp: " + m.note + " " : "") + "Werte sind Schätzungen, korrigiere sie bei Bedarf.";
+      }
+    } catch (e) { status.textContent = sampleErr(e); }
+    finally { estBtn.disabled = false; }
+  };
+  let confirmDel = null;
+  const content = el("div", { class: "stack" },
+    el("h2", { text: existing ? "Mahlzeit bearbeiten" : "Mahlzeit erfassen" }),
+    el("div", { class: "grid2" }, field("Uhrzeit", el("input", { type: "time", id: "meal-time", value: m.time || "" })), field("Datum", el("input", { type: "date", id: "meal-date", value: m.date, max: todayStr() }))),
+    field("Art", chipGroup(MEAL_KINDS, m.kind, false, v => m.kind = v)),
+    field("Was gab es?", el("textarea", { id: "meal-desc", placeholder: "z. B. 3 Eier, 2 Scheiben Vollkornbrot, Avocado, Tomaten, schwarzer Kaffee", style: "min-height:72px" }, m.desc || "")),
+    el("div", { class: "stack", style: "gap:8px" }, prev, el("div", { class: "row" }, el("span", { class: "btn file-btn" }, "Foto hinzufügen", fileIn), estBtn), status),
+    el("div", { class: "grid3" }, field("Protein", numIn("meal-p", m.protein, "g")), field("Kalorien", numIn("meal-kcal", m.kcal, "kcal")), field("Kohlenhydrate", numIn("meal-c", m.carbs, "g"))),
+    el("div", { class: "grid2" }, field("Fett", numIn("meal-f", m.fat, "g")), field("Ballaststoffe", numIn("meal-fi", m.fiber, "g"))),
+    el("div", { class: "row" },
+      el("button", { class: "btn primary", onclick: async () => {
+        const nd = g("meal-date") || date;
+        Object.assign(m, { time: g("meal-time"), desc: g("meal-desc").trim(), protein: num(g("meal-p")), kcal: num(g("meal-kcal")), carbs: num(g("meal-c")), fat: num(g("meal-f")), fiber: num(g("meal-fi")) });
+        if (photo) { if (m.img) deleteImage(m.img); m.img = await saveImage(photo.store); }
+        if (existing) { const om = month(monthOf(existing.date)); om.meals = om.meals.filter(x => x.id !== m.id); save("m-" + monthOf(existing.date)); }
+        m.date = nd;
+        month(monthOf(nd)).meals.push(m); save("m-" + monthOf(nd));
+        closeSheet(); render(); toast("Mahlzeit gespeichert");
+      }, text: "Speichern" }),
+      el("button", { class: "btn", onclick: closeSheet, text: "Abbrechen" }),
+      existing ? el("button", { class: "btn danger", onclick: () => {
+        if (confirmDel) return;
+        confirmDel = el("div", { class: "confirm" }, el("p", { text: "Diese Mahlzeit endgültig löschen?" }), el("div", { class: "row" },
+          el("button", { class: "btn danger", onclick: () => { const om = month(monthOf(existing.date)); om.meals = om.meals.filter(x => x.id !== m.id); save("m-" + monthOf(existing.date)); deleteImage(m.img); closeSheet(); render(); toast("Gelöscht"); }, text: "Ja, löschen" }),
+          el("button", { class: "btn", onclick: () => { confirmDel.remove(); confirmDel = null; }, text: "Behalten" })));
+        content.append(confirmDel);
+      }, text: "Löschen" }) : null));
+  openSheet(content);
+}
+
+/* ================================================================
+   VIEW: STACK (Supplements)
+   ================================================================ */
+function viewStack() {
+  const t = todayStr(), taken = new Set(takenOf(t));
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "row spread" }, el("h1", { text: "Supplement-Stack" }), el("button", { class: "btn primary", onclick: () => suppSheet(), text: "Supplement hinzufügen" })));
+  box.append(el("p", { class: "muted", text: "Fotografiere das Etikett, Claude liest Wirkstoffe und Dosis aus. Du legst fest, wie viel du wann nimmst." }));
+
+  const active = S.supps.filter(s => s.active !== false);
+  if (!active.length) {
+    box.append(el("div", { class: "card flat" }, el("h3", { text: "Noch keine Supplements erfasst" }),
+      el("p", { class: "muted", text: "So geht's: Foto vom Etikett aufnehmen, auslesen lassen, deine Einnahme eintragen (z. B. 2 Kapseln zum Frühstück, täglich). Danach kannst du jeden Tag abhaken, was du genommen hast." }),
+      A().supps_now ? el("p", { class: "small" }, el("strong", { text: "Laut Erstgespräch nimmst du: " }), A().supps_now) : null));
+  } else {
+    const byTime = {};
+    active.forEach(s => (s.times && s.times.length ? s.times : ["ohne Zeitpunkt"]).forEach(tm => (byTime[tm] = byTime[tm] || []).push(s)));
+    const today = el("div", { class: "card" }, el("div", { class: "row spread" }, el("h3", { text: "Heute eingenommen" }), el("span", { class: "num small muted", text: `${active.filter(s => taken.has(s.id)).length} / ${active.length}` })));
+    [...SUPP_TIMES, "ohne Zeitpunkt"].filter(tm => byTime[tm]).forEach(tm => {
+      today.append(el("span", { class: "label", text: tm }));
+      today.append(el("div", { class: "chips" }, byTime[tm].map(s => el("button", { class: "chip", "aria-pressed": taken.has(s.id) ? "true" : "false", onclick: () => {
+        const m = month(monthOf(t)); const set = new Set(m.taken[t] || []); set.has(s.id) ? set.delete(s.id) : set.add(s.id); m.taken[t] = [...set]; save("m-" + monthOf(t)); render();
+      }, text: `${s.name}${s.dose ? " · " + s.dose + " " + (s.doseUnit || "") : ""}` }))));
+    });
+    box.append(today);
+
+    const list = el("div", { class: "list" });
+    S.supps.forEach(s => {
+      const img = el("img", { class: "thumb", alt: "" });
+      if (s.photos && s.photos[0]) loadImage(s.photos[0]).then(d => d && (img.src = d));
+      const days = 14; let hits = 0; for (let i = 0; i < days; i++) if (takenOf(addDays(t, -i)).includes(s.id)) hits++;
+      list.append(el("div", { class: "item" }, s.photos && s.photos[0] ? img : el("div", { class: "thumb ph", text: s.form || "Supplement" }),
+        el("div", { class: "grow" },
+          el("div", { class: "row spread" }, el("strong", { text: s.name || "Ohne Namen" }), s.active === false ? el("span", { class: "pill neutral", text: "pausiert" }) : el("span", { class: "pill " + (hits >= 10 ? "good" : hits >= 5 ? "warn" : "neutral"), text: `${hits}/14 Tage` })),
+          s.brand ? el("p", { class: "small muted", text: s.brand }) : null,
+          el("p", { class: "small", text: [s.dose ? `${s.dose} ${s.doseUnit || ""}` : null, (s.times || []).join(", "), s.freq].filter(Boolean).join(" · ") }),
+          (s.ingredients || []).length ? el("p", { class: "small muted num", text: s.ingredients.map(i => `${i.name}${i.amount != null && i.amount !== "" ? " " + i.amount + " " + (i.unit || "") : ""}`).join(" · ") }) : null,
+          s.reason ? el("p", { class: "small muted", text: "Wofür: " + s.reason }) : null),
+        el("button", { class: "btn sm ghost", onclick: () => suppSheet(s), text: "Bearbeiten" })));
+    });
+    box.append(el("div", { class: "card" }, el("h3", { text: "Dein Stack" }), list));
+  }
+
+  // review
+  const out = el("div", { class: "md msg assistant", style: "max-width:100%" });
+  const rv = S.profile.stackReview;
+  if (rv) out.innerHTML = md(rv.text); else out.hidden = true;
+  const btn = el("button", { class: "btn", disabled: !S.supps.length, text: rv ? "Stack neu prüfen" : "Stack von Claude prüfen lassen" });
+  let ctl = null;
+  btn.onclick = async () => {
+    const sample = await getSample();
+    if (!sample || sampleBlocked) { toast("Claude ist hier nicht verfügbar."); return; }
+    ctl = new AbortController(); btn.disabled = true; out.hidden = false; out.textContent = "Claude prüft deinen Stack …";
+    try {
+      const r = await sample(`Du bist ein evidenzbasierter Longevity- und Performance-Berater (Deutsch, du-Form). Prüfe meinen Supplement-Stack sachlich.
+Gliedere in: **Dosierung** (vergleiche Tagesmengen mit EFSA-Höchstmengen/Upper Limits, markiere Überschreitungen), **Wechselwirkungen** (mit meinen Medikamenten/Diagnosen und untereinander), **Timing** (Einnahmezeitpunkte, Aufnahme mit Fett/nüchtern, Abstand zueinander), **Redundanzen**, **Evidenz** (pro Wirkstoff kurz: stark / moderat / schwach), **Lücken** (passend zu meinen Zielen und Laborwerten), **Was ich mit dem Arzt klären sollte**.
+Kurz und konkret, Aufzählungen. Keine Diagnose.
+
+${contextText({ stackOnly: true })}`, { signal: ctl.signal, modelTier: "complex", cache: false, onText: ({ text }) => { out.innerHTML = md(text); } });
+      S.profile.stackReview = { date: todayStr(), text: r.text }; save("profile");
+      toast("Prüfung gespeichert");
+    } catch (e) { const m = sampleErr(e); if (e.text) out.innerHTML = md(e.text); else out.textContent = m; if (m) toast(m); }
+    finally { btn.disabled = false; btn.textContent = "Stack neu prüfen"; }
+  };
+  box.append(el("div", { class: "card" }, el("div", { class: "row spread" }, el("h3", { text: "Stack-Check" }), rv ? el("span", { class: "small muted", text: "vom " + fmtDate(rv.date) }) : null),
+    el("p", { class: "small muted", text: "Dosierung gegen Höchstmengen, Wechselwirkungen mit deinen Medikamenten, Timing, Redundanzen und Lücken." }), btn, out));
+  return box;
+}
+
+function suppSheet(existing) {
+  const s = JSON.parse(JSON.stringify(Object.assign({ id: uid(), name: "", brand: "", form: null, ingredients: [], times: [], freq: "täglich", photos: [], active: true, start: todayStr() }, existing || {})));
+  const newPhotos = [];
+  const gallery = el("div", { class: "row" });
+  const drawGallery = () => {
+    gallery.innerHTML = "";
+    s.photos.forEach(id => { const im = el("img", { class: "thumb", alt: "Etikett" }); loadImage(id).then(d => d && (im.src = d)); gallery.append(im); });
+    newPhotos.forEach(p => gallery.append(el("img", { class: "thumb", alt: "Etikett", src: p.store })));
+  };
+  drawGallery();
+  const status = el("p", { class: "small muted", "aria-live": "polite" });
+  const ingWrap = el("div", { class: "stack", style: "gap:8px" });
+  const drawIng = () => {
+    ingWrap.innerHTML = "";
+    s.ingredients.forEach((ing, i) => {
+      ingWrap.append(el("div", { class: "row", style: "flex-wrap:nowrap" },
+        el("input", { type: "text", value: ing.name || "", placeholder: "Wirkstoff", "aria-label": "Wirkstoff", style: "flex:2", oninput: e => ing.name = e.target.value }),
+        el("input", { type: "number", inputmode: "decimal", step: "any", value: ing.amount ?? "", placeholder: "Menge", "aria-label": "Menge", style: "flex:1", oninput: e => ing.amount = num(e.target.value) }),
+        el("input", { type: "text", value: ing.unit || "", placeholder: "mg", "aria-label": "Einheit", style: "flex:0 0 70px", oninput: e => ing.unit = e.target.value }),
+        el("button", { class: "btn sm ghost", "aria-label": "Wirkstoff entfernen", onclick: () => { s.ingredients.splice(i, 1); drawIng(); }, text: "×" })));
+    });
+    ingWrap.append(el("button", { class: "btn sm", style: "align-self:flex-start", onclick: () => { s.ingredients.push({ name: "", amount: null, unit: "mg" }); drawIng(); }, text: "Wirkstoff hinzufügen" }));
+  };
+  drawIng();
+
+  const fileIn = el("input", { type: "file", accept: "image/*", multiple: true, id: "supp-photo", "aria-label": "Etikett-Foto wählen" });
+  const readBtn = el("button", { class: "btn", type: "button", disabled: true, text: "Etikett mit Claude auslesen" });
+  fileIn.onchange = async () => {
+    for (const f of [...fileIn.files].slice(0, 4)) { try { newPhotos.push(await prepPhoto(f)); } catch { toast("Ein Bild konnte nicht geladen werden."); } }
+    drawGallery(); readBtn.disabled = !newPhotos.length;
+    if (newPhotos.length) status.textContent = "Foto bereit. Tippe auf Auslesen, oder trag die Daten selbst ein.";
+  };
+  readBtn.onclick = async () => {
+    const sample = await getSample();
+    if (!sample || sampleBlocked) { status.textContent = "Claude ist hier nicht verfügbar. Trag die Daten bitte selbst ein."; return; }
+    const lim = await sample.limits().catch(() => null);
+    if (!lim || !lim.images) { status.textContent = "Bilder können in dieser Ansicht nicht an Claude gesendet werden. Trag die Daten bitte selbst ein."; return; }
+    readBtn.disabled = true; status.textContent = "Claude liest das Etikett …";
+    try {
+      const r = await sample.json(`Die Fotos zeigen die Verpackung bzw. das Etikett eines Nahrungsergänzungsmittels. Lies es genau aus (auch Rückseite/Nährwerttabelle, falls sichtbar).
+Antworte NUR mit JSON:
+{"name": string (Produktname), "brand": string, "form": one of ${JSON.stringify(SUPP_FORMS)}, "serving": string (Portion laut Etikett, z. B. "2 Kapseln"), "ingredients": [{"name": string (Wirkstoff deutsch, z. B. "Vitamin D3", "Magnesium (als Bisglycinat)"), "amount": number|null (pro Portion), "unit": string (mg, µg, IE, g, %)}], "recommended": string (Verzehrempfehlung laut Etikett), "notes": string (Auffälligkeiten: sehr hohe Dosis, problematische Zusatzstoffe, Allergene; deutsch, kurz)}
+Unlesbares leer lassen bzw. null. Nichts erfinden.`, { images: newPhotos.slice(0, lim.images.maxCount || 4).map(p => p.blob), modelTier: "default" });
+      if (r && typeof r === "object") {
+        if (r.name) $("#supp-name").value = String(r.name);
+        if (r.brand) $("#supp-brand").value = String(r.brand);
+        if (r.form && SUPP_FORMS.includes(r.form)) { s.form = r.form; const fw = $("#supp-form"); if (fw) fw.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.textContent === r.form ? "true" : "false")); }
+        if (Array.isArray(r.ingredients) && r.ingredients.length) { s.ingredients = r.ingredients.slice(0, 40).map(i => ({ name: String(i.name || ""), amount: num(i.amount), unit: String(i.unit || "") })); drawIng(); }
+        s.serving = r.serving ? String(r.serving) : s.serving; s.label = r.recommended ? String(r.recommended) : s.label;
+        const notes = [r.serving ? "Portion: " + r.serving : null, r.recommended ? "Empfehlung laut Etikett: " + r.recommended : null, r.notes ? "Hinweis: " + r.notes : null].filter(Boolean).join(" · ");
+        if (notes && !$("#supp-note").value) $("#supp-note").value = notes;
+        status.textContent = "Ausgelesen. Prüf die Werte und trag deine Einnahme ein.";
+      }
+    } catch (e) { status.textContent = sampleErr(e); }
+    finally { readBtn.disabled = false; }
+  };
+
+  const g = id => $("#" + id).value;
+  let confirmDel = null;
+  const content = el("div", { class: "stack" },
+    el("h2", { text: existing ? "Supplement bearbeiten" : "Supplement hinzufügen" }),
+    el("div", { class: "card" }, el("h3", { text: "1 · Etikett fotografieren" }), gallery,
+      el("div", { class: "row" }, el("span", { class: "btn file-btn" }, s.photos.length ? "Weiteres Foto" : "Foto aufnehmen oder wählen", fileIn), readBtn), status),
+    el("div", { class: "card" }, el("h3", { text: "2 · Produkt" }),
+      field("Name", el("input", { type: "text", id: "supp-name", value: s.name, placeholder: "z. B. Vitamin D3 + K2" })),
+      field("Marke", el("input", { type: "text", id: "supp-brand", value: s.brand, placeholder: "z. B. Sunday Natural" })),
+      field("Darreichung", (() => { const c = chipGroup(SUPP_FORMS, s.form, false, v => s.form = v); c.id = "supp-form"; return c; })()),
+      el("div", { class: "field" }, el("span", { text: "Wirkstoffe pro Portion" }), ingWrap)),
+    el("div", { class: "card" }, el("h3", { text: "3 · Deine Einnahme" }),
+      el("div", { class: "grid2" }, field("Menge pro Einnahme", numIn("supp-dose", s.dose, "", "2")), field("Einheit", el("input", { type: "text", id: "supp-unit", value: s.doseUnit || "", placeholder: "Kapseln, Tropfen, g", list: "units" }))),
+      el("datalist", { id: "units" }, ["Kapseln", "Tabletten", "Softgels", "Tropfen", "g", "Messlöffel", "ml", "Gummis", "Sprühstöße"].map(u => el("option", { value: u }))),
+      field("Wann", chipGroup(SUPP_TIMES, s.times, true, v => s.times = v)),
+      field("Wie oft", chipGroup(SUPP_FREQ, s.freq, false, v => s.freq = v)),
+      el("div", { class: "grid2" }, field("Seit", el("input", { type: "date", id: "supp-start", value: s.start || "" })), field("Status", chipGroup(["aktiv", "pausiert"], s.active === false ? "pausiert" : "aktiv", false, v => s.active = v !== "pausiert")))),
+    el("div", { class: "card" }, el("h3", { text: "4 · Wofür und Notizen" }),
+      field("Wofür nimmst du es?", el("input", { type: "text", id: "supp-reason", value: s.reason || "", placeholder: "z. B. Vitamin-D-Wert 22 ng/mL im März" })),
+      field("Notiz", el("textarea", { id: "supp-note", placeholder: "Wirkung, Nebenwirkungen, Preis, Bezugsquelle …", style: "min-height:72px" }, s.note || ""))),
+    el("div", { class: "row" },
+      el("button", { class: "btn primary", onclick: async () => {
+        Object.assign(s, { name: g("supp-name").trim(), brand: g("supp-brand").trim(), dose: num(g("supp-dose")), doseUnit: g("supp-unit").trim(), start: g("supp-start"), reason: g("supp-reason").trim(), note: g("supp-note").trim() });
+        s.ingredients = s.ingredients.filter(i => i.name && i.name.trim());
+        if (!s.name) { status.textContent = "Bitte gib einen Namen ein."; $("#supp-name").focus(); return; }
+        for (const p of newPhotos) s.photos.push(await saveImage(p.store));
+        const i = S.supps.findIndex(x => x.id === s.id);
+        if (i >= 0) S.supps[i] = s; else S.supps.push(s);
+        save("supps"); closeSheet(); render(); toast("Supplement gespeichert");
+      }, text: "Speichern" }),
+      el("button", { class: "btn", onclick: closeSheet, text: "Abbrechen" }),
+      existing ? el("button", { class: "btn danger", onclick: () => {
+        if (confirmDel) return;
+        confirmDel = el("div", { class: "confirm" }, el("p", { text: `„${s.name}“ samt Fotos endgültig löschen? Zum Pausieren stattdessen den Status ändern.` }), el("div", { class: "row" },
+          el("button", { class: "btn danger", onclick: () => { S.supps = S.supps.filter(x => x.id !== s.id); (existing.photos || []).forEach(deleteImage); save("supps"); closeSheet(); render(); toast("Gelöscht"); }, text: "Ja, löschen" }),
+          el("button", { class: "btn", onclick: () => { confirmDel.remove(); confirmDel = null; }, text: "Behalten" })));
+        content.append(confirmDel);
+      }, text: "Löschen" }) : null));
+  openSheet(content);
+}
+
+/* ================================================================
+   COACH (Claude)
+   ================================================================ */
+function contextText(opt = {}) {
+  const L = [];
+  const t = todayStr();
+  L.push(`# Datum heute: ${fmtLong(t)}`);
+  const a = A();
+  L.push(`# Profil${age() != null ? ` (Alter ${age()})` : ""}`);
+  SECTIONS.forEach(sec => {
+    const items = Q.filter(q => q.sec === sec.id && isAnswered(q.id));
+    if (!items.length) return;
+    if (opt.stackOnly && !["basis", "ziele", "gesundheit", "ernaehrung"].includes(sec.id)) return;
+    L.push(`## ${sec.name}`);
+    items.forEach(q => L.push(`- ${q.q} → ${fmtAnswer(q, a[q.id])}`));
+  });
+  const open = Q.filter(q => !isAnswered(q.id));
+  if (open.length && !opt.stackOnly) L.push(`## Noch unbeantwortete Fragen aus dem Erstgespräch (${open.length})\n` + open.slice(0, 25).map(q => "- " + q.q).join("\n"));
+  if (S.facts.length && !opt.stackOnly) L.push("# Gesammeltes Wissen über mich\n" + S.facts.slice(-80).map(f => `- [${f.cat}] ${f.text} (${f.date})`).join("\n"));
+  if (S.supps.length) L.push("# Supplement-Stack\n" + S.supps.map(s => `- ${s.name}${s.brand ? " (" + s.brand + ")" : ""}${s.active === false ? " [pausiert]" : ""}: ${s.dose ?? "?"} ${s.doseUnit || ""}, ${(s.times || []).join("/") || "Zeitpunkt offen"}, ${s.freq || ""}; Wirkstoffe pro Portion: ${(s.ingredients || []).map(i => `${i.name} ${i.amount ?? ""}${i.unit || ""}`).join(", ") || "unbekannt"}${s.reason ? "; Grund: " + s.reason : ""}${s.note ? "; Notiz: " + s.note : ""}`).join("\n"));
+  const latest = {};
+  S.labs.forEach(l => { if (!latest[l.marker + (l.name || "")] || latest[l.marker + (l.name || "")].date < l.date) latest[l.marker + (l.name || "")] = l; });
+  if (Object.keys(latest).length) L.push("# Laborwerte (jeweils neuester)\n" + Object.values(latest).map(l => { const m = markerById(l.marker); return `- ${l.marker === "other" ? l.name : m.name}: ${l.value} ${l.unit || m.unit} (${l.date})${m.id !== "other" ? `, Zielbereich ${rangeText(m)}` : ""}`; }).join("\n"));
+  if (!opt.stackOnly) {
+    const ci = [];
+    for (let i = 13; i >= 0; i--) {
+      const d = addDays(t, -i), c = checkinOf(d); if (!c) continue;
+      const parts = [c.sleep_h != null && `Schlaf ${c.sleep_h}h`, c.sleep_q != null && `SQ ${c.sleep_q}`, c.energy != null && `Energie ${c.energy}`, c.mood != null && `Stimmung ${c.mood}`, c.stress != null && `Stress ${c.stress}`, c.focus != null && `Fokus ${c.focus}`, (c.train || []).length && `Training ${c.train.join("+")}${c.train_min ? " " + c.train_min + "min" : ""}`, c.steps != null && `${c.steps} Schritte`, c.hrv != null && `HRV ${c.hrv}`, c.rhr != null && `RHR ${c.rhr}`, c.weight != null && `${c.weight}kg`, c.alcohol != null && `Alkohol ${c.alcohol}`, c.caffeine != null && `Kaffee ${c.caffeine}`, c.note && `Notiz: ${c.note}`].filter(Boolean);
+      const tk = takenOf(d).length; if (S.supps.length) parts.push(`Supps ${tk}/${S.supps.filter(s => s.active !== false).length}`);
+      ci.push(`- ${d}: ${parts.join(", ")}`);
+    }
+    if (ci.length) L.push("# Check-ins letzte 14 Tage\n" + ci.join("\n"));
+    const ml = [];
+    for (let i = 6; i >= 0; i--) { const d = addDays(t, -i); mealsOf(d).forEach(m => ml.push(`- ${d} ${m.time || ""} ${m.kind || ""}: ${m.desc || "(Foto)"}${m.protein != null ? `, P ${m.protein}g` : ""}${m.kcal ? `, ${m.kcal}kcal` : ""}`)); const w = waterOf(d); if (w) ml.push(`- ${d} Wasser ${w * 0.25} l`); }
+    if (ml.length) L.push("# Ernährung letzte 7 Tage\n" + ml.join("\n"));
+  }
+  const out = L.join("\n\n");
+  return out.length > 60000 ? out.slice(0, 60000) + "\n…(gekürzt)" : out;
+}
+const COACH_RULES = `Du bist mein persönlicher Health-, Longevity- und Performance-Coach. Sprich Deutsch, in der Du-Form, warm aber direkt.
+Ziel: Ich will lange gesund leben und körperlich wie mental Höchstleistung abrufen können.
+Arbeitsweise:
+- Stütze dich auf gute Evidenz (Schlaf, Kraft, Zone 2, VO2max, Protein, Ballaststoffe, Stressregulation, Licht, soziale Bindung, Blutmarker wie ApoB, HbA1c, hs-CRP). Sag ehrlich, wenn die Evidenz dünn ist.
+- Du sammelst kontinuierlich Daten über mich. Wenn für eine gute Antwort Infos fehlen, stelle am Ende EINE gezielte Rückfrage (höchstens zwei).
+- Wenn ich dir etwas Neues, dauerhaft Relevantes über mich erzähle (Gewohnheit, Beschwerde, Ziel, Vorliebe, Messwert, Arztbefund), speichere es mit dem Tool notiz_speichern, kurz und sachlich. Speichere nichts doppelt, was schon im Profil steht.
+- Antworte knapp und konkret: kurze Absätze oder Aufzählungen, konkrete Zahlen, Uhrzeiten und nächste Schritte.
+- Du bist kein Arzt. Keine Diagnosen. Bei Warnzeichen (Brustschmerz, Atemnot, starke Gewichtsabnahme, Suizidgedanken, Blut im Stuhl, neue neurologische Symptome) rätst du klar und sofort zur ärztlichen Abklärung bzw. zum Notruf 144 (Österreich) oder 112.
+- Medikamente nie eigenständig absetzen oder ändern lassen; verweise dafür auf den Arzt.`;
+
+let chatCtl = null;
+function viewCoach() {
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "row spread" }, el("h1", { text: "Coach" }),
+    S.chat.length ? el("button", { class: "btn sm ghost", onclick: () => confirmInline(box, "Den ganzen Gesprächsverlauf löschen? Gespeichertes Wissen bleibt erhalten.", () => { S.chat = []; save("chat"); render(); }), text: "Verlauf löschen" }) : null));
+  const chat = el("div", { class: "chat", "aria-live": "polite" });
+  if (!S.chat.length) {
+    chat.append(el("div", { class: "card flat" },
+      el("h3", { text: "Dein Coach kennt alles, was du hier speicherst" }),
+      el("p", { class: "muted", text: "Profil, Check-ins, Mahlzeiten, Stack und Laborwerte gehen bei jeder Frage mit. Neue Erkenntnisse über dich speichert der Coach selbst im Bereich Wissen." }),
+      el("p", { class: "small muted", text: "Das Gespräch läuft über dein eigenes Claude-Konto. Beim ersten Mal fragt Claude, ob diese Seite es nutzen darf." })));
+  }
+  S.chat.forEach(m => chat.append(bubble(m)));
+  box.append(chat);
+  const starters = [
+    ["Frag mich etwas", "Stell mir jetzt die eine Frage, deren Antwort dir am meisten hilft, mich besser zu verstehen und mich gezielter zu beraten."],
+    ["Wochenanalyse", "Analysiere meine letzten 7 Tage. Was fällt dir auf, und was sind die 3 wirksamsten Hebel für nächste Woche?"],
+    ["Mein Plan", "Erstelle mir auf Basis meiner Daten einen konkreten Wochenplan für Training, Schlaf und Ernährung."],
+    ["Laborwerte deuten", "Ordne meine Laborwerte aus Longevity-Sicht ein. Was ist gut, was sollte ich beobachten oder mit dem Arzt besprechen, und welche Werte fehlen mir?"],
+  ];
+  const ta = el("textarea", { id: "chat-in", placeholder: "Schreib deinem Coach …", rows: "2", onkeydown: e => { if (e.key === "Enter" && !e.shiftKey && window.matchMedia("(min-width: 700px)").matches) { e.preventDefault(); send(); } } });
+  const sendBtn = el("button", { class: "btn primary", text: "Senden" });
+  const stopBtn = el("button", { class: "btn", hidden: true, text: "Stopp", onclick: () => chatCtl && chatCtl.abort() });
+  async function send(text) {
+    text = (text || ta.value).trim(); if (!text) return;
+    const sample = await getSample();
+    if (!sample || sampleBlocked) { toast("Claude ist in dieser Ansicht nicht verfügbar. Öffne den Tresor in claude.ai."); return; }
+    ta.value = "";
+    const um = { role: "user", content: text, t: Date.now() };
+    S.chat.push(um); save("chat");
+    $(".card.flat", chat)?.remove();
+    chat.append(bubble(um));
+    const live = el("div", { class: "msg assistant md", text: "Denkt nach …" });
+    chat.append(live); live.scrollIntoView({ block: "end", behavior: "smooth" });
+    sendBtn.disabled = true; stopBtn.hidden = false;
+    chatCtl = new AbortController();
+    let saved = 0;
+    const tools = [{
+      name: "notiz_speichern",
+      description: "Speichert eine neue, dauerhaft relevante Information über den Nutzer in seinem verschlüsselten Wissensspeicher. Gibt 'gespeichert' zurück.",
+      inputSchema: { type: "object", properties: { kategorie: { type: "string", description: "z. B. Schlaf, Ernährung, Training, Psyche, Gesundheit, Ziele, Messwert, Vorliebe" }, text: { type: "string", description: "Kurze sachliche Aussage, max. 200 Zeichen" } }, required: ["kategorie", "text"] },
+      execute: (inp) => {
+        const txt = String(inp.text || "").slice(0, 300).trim(); if (!txt) throw new Error("leer");
+        S.facts.push({ id: uid(), cat: String(inp.kategorie || "Allgemein").slice(0, 40), text: txt, date: todayStr(), src: "coach" });
+        save("facts"); saved++; return "gespeichert";
+      },
+    }];
+    try {
+      const lim = await sample.limits().catch(() => null);
+      const hist = S.chat.slice(-24).map(m => ({ role: m.role, content: m.content }));
+      while (hist.length && hist[0].role !== "user" && hist.length > 1) hist.shift();
+      const input = [{ role: "user", content: COACH_RULES + "\n\n---\nMEINE DATEN (verschlüsselt gespeichert, nur für dich als Kontext):\n\n" + contextText() }, ...hist];
+      const opts = { signal: chatCtl.signal, onText: ({ text }) => { live.innerHTML = md(text); } };
+      if (lim && lim.tools) opts.tools = tools; else opts.cache = false;
+      const r = await sample(input, opts);
+      const am = { role: "assistant", content: r.text, t: Date.now() };
+      S.chat.push(am); save("chat");
+      live.innerHTML = md(r.text);
+      if (saved) chat.append(el("div", { class: "msg note", text: `${saved} ${saved === 1 ? "neue Info" : "neue Infos"} im Bereich Wissen gespeichert` }));
+    } catch (e) {
+      const m = sampleErr(e);
+      if (e.text) { live.innerHTML = md(e.text); S.chat.push({ role: "assistant", content: e.text + "\n\n(unterbrochen)", t: Date.now() }); save("chat"); }
+      else live.remove();
+      if (m) toast(m);
+    } finally { sendBtn.disabled = false; stopBtn.hidden = true; chatCtl = null; }
+  }
+  sendBtn.onclick = () => send();
+  box.append(el("div", { class: "chips" }, starters.map(([l, p]) => el("button", { class: "chip", onclick: () => send(p), text: l }))));
+  box.append(el("div", { class: "composer" }, ta, el("div", { class: "stack", style: "gap:6px" }, sendBtn, stopBtn)));
+  setTimeout(() => { const last = chat.lastElementChild; if (last && S.chat.length) last.scrollIntoView({ block: "end" }); }, 30);
+  return box;
+}
+function bubble(m) {
+  if (m.role === "user") return el("div", { class: "msg user", text: m.content });
+  const d = el("div", { class: "msg assistant md" }); d.innerHTML = md(m.content); return d;
+}
+function md(src) {
+  const lines = esc(src || "").split(/\r?\n/);
+  let html = "", list = null, para = [];
+  const inline = s => s.replace(/`([^`]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>");
+  const fp = () => { if (para.length) { html += "<p>" + inline(para.join("<br>")) + "</p>"; para = []; } };
+  const fl = () => { if (list) { html += `<${list.t}>` + list.items.map(i => "<li>" + inline(i) + "</li>").join("") + `</${list.t}>`; list = null; } };
+  for (const line of lines) {
+    let m;
+    if (/^\s*$/.test(line)) { fp(); fl(); continue; }
+    if ((m = line.match(/^#{1,4}\s+(.*)/))) { fp(); fl(); html += "<h4>" + inline(m[1]) + "</h4>"; continue; }
+    if ((m = line.match(/^\s*[-*•]\s+(.*)/))) { fp(); if (!list || list.t !== "ul") { fl(); list = { t: "ul", items: [] }; } list.items.push(m[1]); continue; }
+    if ((m = line.match(/^\s*\d+[.)]\s+(.*)/))) { fp(); if (!list || list.t !== "ol") { fl(); list = { t: "ol", items: [] }; } list.items.push(m[1]); continue; }
+    if (list && /^\s{2,}/.test(line)) { list.items[list.items.length - 1] += " " + line.trim(); continue; }
+    fl(); para.push(line);
+  }
+  fp(); fl();
+  return html;
+}
+function confirmInline(container, text, onYes) {
+  if (container.querySelector(".confirm")) return;
+  const c = el("div", { class: "confirm" }, el("p", { text }), el("div", { class: "row" },
+    el("button", { class: "btn danger", onclick: () => { c.remove(); onYes(); }, text: "Ja" }),
+    el("button", { class: "btn", onclick: () => c.remove(), text: "Abbrechen" })));
+  container.prepend(c);
+}
+
+/* ================================================================
+   VIEW: ICH (Fragebogen, Laborwerte, Wissen, Sicherheit)
+   ================================================================ */
+function viewMe() {
+  const sub = SUB.ich || "fragen";
+  const box = el("div", { class: "stack" });
+  box.append(el("h1", { text: A().name ? A().name : "Ich" }));
+  const segs = [["fragen", "Erstgespräch"], ["labor", "Laborwerte"], ["wissen", "Wissen"], ["sicherheit", "Sicherheit"]];
+  box.append(el("div", { class: "seg", role: "tablist" }, segs.map(([id, n]) => el("button", { role: "tab", "aria-pressed": sub === id ? "true" : "false", onclick: () => go("ich", id), text: n }))));
+  box.append({ fragen: viewAnswers, labor: viewLabs, wissen: viewFacts, sicherheit: viewSecurity }[sub]());
+  return box;
+}
+function viewAnswers() {
+  const box = el("div", { class: "stack" });
+  const done = answeredCount();
+  box.append(el("div", { class: "card" },
+    el("div", { class: "row spread" }, el("h3", { text: "Fortschritt" }), el("span", { class: "num muted", text: `${done} / ${Q.length}` })),
+    el("div", { class: "progress" }, el("i", { style: `width:${Math.round(done / Q.length * 100)}%` })),
+    done < Q.length ? el("button", { class: "btn primary", onclick: () => { const i = firstOpen(); openInterview(i >= 0 ? i : Q.findIndex(q => !isAnswered(q.id))); }, text: "Offene Fragen beantworten" }) : el("p", { class: "muted", text: "Alles beantwortet. Aktualisiere Antworten, wenn sich etwas ändert." })));
+  SECTIONS.forEach(sec => {
+    const qs = Q.filter(q => q.sec === sec.id), d = qs.filter(q => isAnswered(q.id)).length;
+    box.append(el("details", { class: "card" },
+      el("summary", {}, el("span", { text: sec.name + " " }), el("span", { class: "pill " + (d === qs.length ? "good" : d ? "warn" : "neutral"), text: `${d}/${qs.length}` })),
+      el("div", { class: "list" }, qs.map(q => el("div", { class: "item" },
+        el("div", { class: "grow" }, el("p", { class: "small muted", text: q.q }), el("p", { class: "ans", text: isAnswered(q.id) ? fmtAnswer(q, A()[q.id]) : (S.profile.skipped[q.id] ? "übersprungen" : "offen") })),
+        el("button", { class: "btn sm ghost", onclick: () => openInterview(Q.indexOf(q), sec.id), text: "Ändern" })))),
+      el("button", { class: "btn sm", onclick: () => openInterview(Q.indexOf(qs[0]), sec.id), text: "Abschnitt durchgehen" })));
+  });
+  return box;
+}
+function viewLabs() {
+  const box = el("div", { class: "stack" });
+  const latest = {};
+  S.labs.forEach(l => { const k = l.marker === "other" ? "o:" + l.name : l.marker; if (!latest[k] || latest[k].date < l.date) latest[k] = l; });
+  box.append(el("div", { class: "row spread" }, el("p", { class: "muted", style: "flex:1", text: "Longevity-Zielbereiche dienen der Orientierung und ersetzen keine ärztliche Bewertung." }), el("button", { class: "btn primary", onclick: () => labSheet(), text: "Wert eintragen" })));
+  const keys = Object.keys(latest);
+  if (!keys.length) {
+    box.append(el("div", { class: "card flat" }, el("h3", { text: "Noch keine Laborwerte" }),
+      el("p", { class: "muted", text: "Für ein Longevity-Basisprofil empfehle ich: ApoB, Lp(a), HbA1c, Nüchterninsulin, hs-CRP, Vitamin D, Ferritin, Homocystein, Omega-3-Index, TSH, Leber- und Nierenwerte. Trag ein, was du hast." })));
+    return box;
+  }
+  const list = el("div", { class: "list" });
+  keys.sort((a, b) => MARKERS.findIndex(m => m.id === latest[a].marker) - MARKERS.findIndex(m => m.id === latest[b].marker)).forEach(k => {
+    const l = latest[k], m = markerById(l.marker), st = labStatus(l);
+    const hist = S.labs.filter(x => (x.marker === "other" ? "o:" + x.name : x.marker) === k).sort((a, b) => a.date.localeCompare(b.date));
+    list.append(el("div", { class: "item" },
+      el("div", { class: "grow" },
+        el("div", { class: "row spread" }, el("strong", { text: m.id === "other" ? l.name : m.name }), st ? el("span", { class: "pill " + st, text: st === "good" ? "im Zielbereich" : "außerhalb" }) : null),
+        el("p", { class: "num", text: `${l.value} ${l.unit || m.unit}` }),
+        el("p", { class: "small muted", text: `${fmtDate(l.date)}${m.id !== "other" ? " · Ziel " + rangeText(m) + " " + m.unit : ""}${hist.length > 1 ? " · " + hist.length + " Messungen" : ""}` }),
+        hist.length > 1 ? el("p", { class: "small muted num", text: hist.map(h => h.value).join(" → ") }) : null,
+        m.note ? el("p", { class: "small muted", text: m.note }) : null),
+      el("button", { class: "btn sm ghost", onclick: () => labHistory(k, hist), text: "Verlauf" })));
+  });
+  box.append(el("div", { class: "card" }, list));
+  return box;
+}
+function labSheet() {
+  let marker = "apob";
+  const unitLab = el("span", { class: "u", text: markerById(marker).unit });
+  const hint = el("small", { class: "muted", text: "Zielbereich " + rangeText(markerById(marker)) + " " + markerById(marker).unit });
+  const nameF = field("Bezeichnung", el("input", { type: "text", id: "lab-name", placeholder: "z. B. Kalium" }));
+  const unitF = field("Einheit", el("input", { type: "text", id: "lab-unit", placeholder: "mmol/L" }));
+  nameF.hidden = true; unitF.hidden = true;
+  const sel = el("select", { id: "lab-marker", onchange: e => {
+    marker = e.target.value; const m = markerById(marker);
+    unitLab.textContent = m.unit; hint.textContent = m.id === "other" ? "" : "Zielbereich " + rangeText(m) + " " + m.unit;
+    nameF.hidden = unitF.hidden = m.id !== "other";
+  } }, MARKERS.map(m => el("option", { value: m.id, text: m.name })));
+  const content = el("div", { class: "stack" }, el("h2", { text: "Laborwert eintragen" }),
+    field("Marker", sel), nameF, unitF,
+    el("div", { class: "grid2" }, field("Wert", el("div", { class: "unit-in" }, el("input", { type: "number", id: "lab-val", inputmode: "decimal", step: "any" }), unitLab)), field("Datum", el("input", { type: "date", id: "lab-date", value: todayStr(), max: todayStr() }))),
+    hint,
+    el("small", { class: "muted", text: "Achte auf die Einheit im Befund. Bei mmol/L statt mg/dL: Cholesterin × 38,67, Triglyceride × 88,57, Glukose × 18." }),
+    el("div", { class: "row" },
+      el("button", { class: "btn primary", onclick: () => {
+        const v = num($("#lab-val").value); if (v == null) { toast("Bitte einen Wert eingeben."); return; }
+        const m = markerById(marker);
+        S.labs.push({ id: uid(), marker, name: m.id === "other" ? $("#lab-name").value.trim() || "Wert" : m.name, value: v, unit: m.id === "other" ? $("#lab-unit").value.trim() : m.unit, date: $("#lab-date").value || todayStr() });
+        save("labs"); closeSheet(); render(); toast("Laborwert gespeichert");
+      }, text: "Speichern" }),
+      el("button", { class: "btn", onclick: closeSheet, text: "Abbrechen" })));
+  openSheet(content);
+}
+function labHistory(k, hist) {
+  const m = markerById(hist[0].marker);
+  const content = el("div", { class: "stack" }, el("h2", { text: m.id === "other" ? hist[0].name : m.name }),
+    hist.length > 1 ? el("div", { class: "trend" }, spark(hist.map(h => ({ v: h.value })))) : null,
+    el("div", { class: "list" }, [...hist].reverse().map(h => el("div", { class: "item" },
+      el("div", { class: "grow" }, el("span", { class: "num", text: `${h.value} ${h.unit || m.unit}` }), el("span", { class: "small muted", text: " · " + fmtDate(h.date) })),
+      el("button", { class: "btn sm danger", onclick: () => { S.labs = S.labs.filter(x => x.id !== h.id); save("labs"); closeSheet(); render(); toast("Messung gelöscht"); }, text: "Löschen" })))),
+    el("button", { class: "btn", onclick: closeSheet, text: "Schließen" }));
+  openSheet(content);
+}
+function viewFacts() {
+  const box = el("div", { class: "stack" });
+  box.append(el("p", { class: "muted", text: "Was der Coach und die Frage des Tages über dich gelernt haben. Du kannst auch selbst Notizen ergänzen." }));
+  const cat = el("input", { type: "text", id: "fact-cat", placeholder: "Kategorie, z. B. Schlaf" });
+  const txt = el("textarea", { id: "fact-text", placeholder: "z. B. Nach Alkohol sinkt meine HRV am nächsten Tag um etwa 20 ms.", style: "min-height:64px" });
+  box.append(el("div", { class: "card" }, el("h3", { text: "Notiz hinzufügen" }), cat, txt, el("button", { class: "btn", style: "align-self:flex-start", onclick: () => {
+    const t = txt.value.trim(); if (!t) return;
+    S.facts.push({ id: uid(), cat: cat.value.trim() || "Allgemein", text: t, date: todayStr(), src: "manuell" }); save("facts"); render(); toast("Gespeichert");
+  }, text: "Speichern" })));
+  if (S.facts.length) {
+    const groups = {};
+    S.facts.forEach(f => (groups[f.cat] = groups[f.cat] || []).push(f));
+    Object.entries(groups).forEach(([c, fs]) => box.append(el("div", { class: "card" }, el("span", { class: "label", text: c }),
+      el("div", { class: "list" }, [...fs].reverse().map(f => el("div", { class: "item" },
+        el("div", { class: "grow" }, el("p", { text: f.text }), el("p", { class: "small muted", text: fmtDate(f.date) + (f.src === "coach" ? " · vom Coach" : "") })),
+        el("button", { class: "btn sm ghost", "aria-label": "Notiz löschen", onclick: () => { S.facts = S.facts.filter(x => x.id !== f.id); save("facts"); render(); }, text: "Löschen" })))))));
+  }
+  return box;
+}
+function viewSecurity() {
+  const box = el("div", { class: "stack" });
+  box.append(el("div", { class: "card" }, el("h3", { text: "So sind deine Daten geschützt" }),
+    el("dl", { class: "kv" },
+      el("dt", { text: "Verschlüsselung" }), el("dd", { text: "AES-256-GCM" }),
+      el("dt", { text: "Schlüssel aus PIN" }), el("dd", { text: "PBKDF2 · " + (META ? META.iter.toLocaleString("de-AT") : ITER) + " Runden" }),
+      el("dt", { text: "Speicherort" }), el("dd", { style: "font-family:var(--f-body)", text: Store.mode === "cloud" ? "privater Claude-Speicher" : "nur dieser Browser" }),
+      el("dt", { text: "PIN gespeichert?" }), el("dd", { style: "font-family:var(--f-body)", text: "nein, nirgends" })),
+    el("p", { class: "small muted", text: Store.mode === "cloud" ? "Deine Daten liegen verschlüsselt in deinem persönlichen Bereich dieses Artefakts. Den kann nur dein Konto lesen, auch geteilte Betrachter oder Claude in anderen Chats sehen nichts. Ohne PIN ist der Inhalt unlesbar." : "Deine Daten liegen verschlüsselt im Speicher dieses Browsers. Exportiere regelmäßig ein Backup, falls der Browser-Speicher gelöscht wird." }),
+    el("p", { class: "small muted", text: "Eine 6-stellige PIN hat 1 Million Kombinationen. Die Schlüsselableitung bremst jeden Rateversuch stark. Für noch mehr Sicherheit wähle eine PIN mit 8 oder mehr Ziffern." }),
+    el("p", { class: "small muted", text: "Wenn du Claude nutzt (Coach, Etikett auslesen, Mahlzeit schätzen), werden die dafür nötigen Daten entschlüsselt an dein eigenes Claude-Konto gesendet." })));
+
+  const al = S.profile.settings.autolock || 5;
+  box.append(el("div", { class: "card" }, el("h3", { text: "Automatisch sperren nach" }),
+    chipGroup(["2 min", "5 min", "15 min", "30 min"], al + " min", false, v => { if (!v) return; S.profile.settings.autolock = parseInt(v, 10); save("profile"); toast("Gespeichert"); }),
+    el("button", { class: "btn", style: "align-self:flex-start", onclick: lock, text: "Jetzt sperren" })));
+
+  const pinMsg = el("p", { class: "small", "aria-live": "polite" });
+  box.append(el("div", { class: "card" }, el("h3", { text: "PIN ändern" }),
+    el("div", { class: "grid3" },
+      field("Aktuelle PIN", el("input", { type: "password", id: "pin-old", inputmode: "numeric", autocomplete: "current-password" })),
+      field("Neue PIN", el("input", { type: "password", id: "pin-new", inputmode: "numeric", autocomplete: "new-password" })),
+      field("Wiederholen", el("input", { type: "password", id: "pin-new2", inputmode: "numeric", autocomplete: "new-password" }))),
+    el("button", { class: "btn", style: "align-self:flex-start", onclick: async (e) => {
+      const o = $("#pin-old").value, n = $("#pin-new").value, n2 = $("#pin-new2").value;
+      if (!/^\d+$/.test(n) || n.length < MIN_PIN) { pinMsg.textContent = `Die neue PIN braucht mindestens ${MIN_PIN} Ziffern.`; return; }
+      if (n !== n2) { pinMsg.textContent = "Die neuen PINs stimmen nicht überein."; return; }
+      e.target.disabled = true; pinMsg.textContent = "Prüfe und verschlüssele neu …";
+      try {
+        const k = await deriveKey(o, META.salt, META.iter);
+        await decWith(k, META.check);
+        await changePin(n);
+        ["pin-old", "pin-new", "pin-new2"].forEach(id => $("#" + id).value = "");
+        pinMsg.textContent = "PIN geändert. Alle Daten sind mit dem neuen Schlüssel verschlüsselt.";
+      } catch (err) { pinMsg.textContent = err && err.name === "OperationError" ? "Die aktuelle PIN ist falsch." : "Das Ändern hat nicht geklappt. Deine alte PIN gilt weiter."; console.error(err); }
+      finally { e.target.disabled = false; }
+    }, text: "PIN ändern" }), pinMsg));
+
+  const bkMsg = el("p", { class: "small", "aria-live": "polite" });
+  const imp = el("input", { type: "file", accept: "application/json,.json", id: "bk-file", "aria-label": "Backup-Datei wählen" });
+  imp.onchange = () => importBackup(imp.files[0], bkMsg);
+  box.append(el("div", { class: "card" }, el("h3", { text: "Backup" }),
+    el("p", { class: "small muted", text: "Das Backup ist eine verschlüsselte Datei mit allen Daten und Fotos. Zum Wiederherstellen brauchst du die PIN, die beim Export galt." }),
+    el("div", { class: "row" },
+      el("button", { class: "btn", onclick: () => exportBackup(bkMsg), text: "Verschlüsseltes Backup speichern" }),
+      el("span", { class: "btn file-btn" }, "Backup wiederherstellen", imp)), bkMsg));
+
+  box.append(el("div", { class: "card", style: "border-color:var(--bad)" }, el("h3", { text: "Alle Daten löschen" }),
+    el("p", { class: "small muted", text: "Löscht den Tresor mit allen Antworten, Check-ins, Fotos und Gesprächen endgültig. Das lässt sich nicht rückgängig machen." }),
+    el("button", { class: "btn danger", style: "align-self:flex-start", onclick: (e) => confirmInline(e.target.parentElement, "Wirklich alles endgültig löschen?", wipeAll), text: "Tresor löschen" })));
+  return box;
+}
+
+/* ---------- PIN change / backup / wipe ---------- */
+function allDocNames() { return [...CORE, ...S.index.months.map(m => "m-" + m)]; }
+async function changePin(newPin) {
+  await flush();
+  const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+  const nk = await deriveKey(newPin, salt, ITER);
+  const recs = {};
+  for (const n of allDocNames()) { const d = n === "chat" ? { items: S.chat } : slice(n); if (d) recs[n] = await encWith(nk, d); }
+  const imgs = {};
+  for (const id of allImageIds()) { const d = await loadImage(id); if (d) imgs[id] = await encWith(nk, { d }); }
+  const meta = { v: VERSION, salt, iter: ITER, check: await encWith(nk, { ok: true }), created: META.created, changed: new Date().toISOString() };
+  // meta-next lets the new PIN unlock if the switch is interrupted after the data was rewritten
+  await Store.set("meta-next", meta);
+  for (const [n, r] of Object.entries(recs)) await Store.set(n, r);
+  for (const [id, r] of Object.entries(imgs)) await Store.set("img-" + id, r);
+  await Store.set("meta", meta);
+  await Store.del("meta-next");
+  META = meta; KEY = nk;
+}
+async function exportBackup(msg) {
+  msg.textContent = "Erstelle Backup …";
+  try {
+    await flush();
+    const images = {};
+    for (const id of allImageIds()) { const d = await loadImage(id); if (d) images[id] = d; }
+    const bundle = { app: "longevity-tresor", v: VERSION, exported: new Date().toISOString(), state: { profile: S.profile, facts: S.facts, labs: S.labs, supps: S.supps, chat: S.chat, index: S.index, months: S.months }, images };
+    const file = { app: "longevity-tresor-backup", v: VERSION, salt: META.salt, iter: META.iter, data: await encWith(KEY, bundle) };
+    const json = JSON.stringify(file);
+    const downloads = window.claude && typeof window.claude.use === "function" ? await withTimeout(window.claude.use("downloads"), 12000) : null;
+    const fname = `longevity-tresor-${todayStr()}.json`;
+    if (downloads) { await downloads.save({ filename: fname, data: new Blob([json], { type: "application/json" }) }); msg.textContent = "Backup gespeichert."; }
+    else {
+      const a = el("a", { href: URL.createObjectURL(new Blob([json], { type: "application/json" })), download: fname });
+      document.body.append(a); a.click(); a.remove(); msg.textContent = "Backup heruntergeladen.";
+    }
+  } catch (e) { console.error(e); msg.textContent = e && e.code === "declined" ? "Speichern abgebrochen." : "Das Backup konnte nicht gespeichert werden."; }
+}
+async function importBackup(file, msg) {
+  if (!file) return;
+  let parsed;
+  try { parsed = JSON.parse(await file.text()); if (parsed.app !== "longevity-tresor-backup") throw 0; } catch { msg.textContent = "Das ist keine gültige Backup-Datei."; return; }
+  const pinIn = el("input", { type: "password", id: "bk-pin", inputmode: "numeric", placeholder: "PIN des Backups" });
+  const box = el("div", { class: "confirm" }, el("p", { text: `Backup vom ${new Date(parsed.data && parsed.exported ? parsed.exported : Date.now()).toLocaleDateString("de-AT")} wiederherstellen? Es ersetzt alle aktuellen Daten.` }), pinIn,
+    el("div", { class: "row" },
+      el("button", { class: "btn danger", onclick: async () => {
+        msg.textContent = "Entschlüssele …";
+        try {
+          const k = await deriveKey(pinIn.value, parsed.salt, parsed.iter);
+          const b = await decWith(k, parsed.data);
+          S = Object.assign(emptyState(), b.state);
+          imgCache.clear();
+          for (const [id, d] of Object.entries(b.images || {})) { imgCache.set(id, d); await queueSet("img-" + id, await encWith(KEY, { d })); }
+          allDocNames().forEach(n => dirty.add(n));
+          await flush();
+          box.remove(); msg.textContent = "Backup wiederhergestellt."; render();
+        } catch (e) { msg.textContent = e && e.name === "OperationError" ? "Falsche PIN für dieses Backup." : "Wiederherstellen fehlgeschlagen."; }
+      }, text: "Wiederherstellen" }),
+      el("button", { class: "btn", onclick: () => { box.remove(); msg.textContent = ""; }, text: "Abbrechen" })));
+  msg.textContent = ""; msg.before(box);
+}
+async function wipeAll() {
+  try {
+    const names = [...allDocNames(), ...allImageIds().map(i => "img-" + i), "meta-next", "meta"];
+    for (const n of names) { try { await Store.del(n); } catch {} }
+    lsDel("fails");
+  } finally { KEY = null; S = null; META = null; imgCache.clear(); dirty.clear(); showLock(); toast("Tresor gelöscht"); }
+}
+
+/* ================================================================
+   LOCK / UNLOCK
+   ================================================================ */
+let lastAct = Date.now(), hiddenAt = null;
+["pointerdown", "keydown", "touchstart", "scroll"].forEach(ev => window.addEventListener(ev, () => { lastAct = Date.now(); }, { passive: true }));
+setInterval(() => { if (KEY && S && Date.now() - lastAct > (S.profile.settings.autolock || 5) * 60000 && !chatCtl) lock(); }, 15000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { hiddenAt = Date.now(); if (KEY) flush(); }
+  else if (KEY && hiddenAt && Date.now() - hiddenAt > 120000) lock();
+});
+window.addEventListener("pagehide", () => { if (KEY) flush(); });
+
+async function lock() {
+  try { await flush(); } catch {}
+  if (chatCtl) chatCtl.abort();
+  KEY = null; S = null; imgCache.clear(); IV = null; closeSheet();
+  showLock();
+}
+function fails() { try { return JSON.parse(lsGet("fails") || '{"n":0,"until":0}'); } catch { return { n: 0, until: 0 }; } }
+
+async function showLock() {
+  app.innerHTML = "";
+  const wrap = el("div", { class: "lock wrap" });
+  const card = el("div", { class: "lock-card" }, mark(), el("p", { class: "label", text: "Verbinde mit deinem Speicher …" }));
+  card.firstChild.setAttribute("class", "lock-mark");
+  wrap.append(card); app.append(wrap);
+  await Store.init();
+  let meta = null;
+  try { meta = await Store.get("meta"); } catch (e) { card.lastChild.textContent = "Der Speicher ist gerade nicht erreichbar. Lade die Seite neu."; return; }
+  const creating = !meta;
+  let pin = "", first = null;
+  card.innerHTML = "";
+  const markEl = mark(); markEl.setAttribute("class", "lock-mark");
+  const title = el("h1", { text: creating ? "Tresor anlegen" : "Longevity-Tresor" });
+  const sub = el("p", { class: "muted" });
+  const dots = el("div", { class: "dots", "aria-hidden": "true" });
+  const err = el("p", { class: "msg-err", role: "alert" });
+  const setSub = () => { sub.textContent = creating ? (first == null ? `Wähle eine PIN mit mindestens ${MIN_PIN} Ziffern. Sie wird nirgends gespeichert und ist der einzige Schlüssel zu deinen Daten.` : "Gib die PIN zur Bestätigung noch einmal ein.") : "Gib deine PIN ein, um deine Daten zu entschlüsseln."; };
+  setSub();
+  const draw = () => { dots.innerHTML = ""; const n = Math.max(MIN_PIN, pin.length); for (let i = 0; i < n; i++) dots.append(el("i", { class: i < pin.length ? "on" : "" })); };
+  draw();
+  let busy = false;
+  const press = (k) => {
+    if (busy) return;
+    err.textContent = "";
+    if (k === "del") pin = pin.slice(0, -1);
+    else if (k === "ok") return submit();
+    else if (pin.length < 16) pin += k;
+    draw();
+  };
+  const shake = (msg) => { err.textContent = msg; dots.classList.remove("shake"); void dots.offsetWidth; dots.classList.add("shake"); pin = ""; draw(); };
+  async function submit() {
+    if (pin.length < MIN_PIN) { shake(`Mindestens ${MIN_PIN} Ziffern.`); return; }
+    if (creating) {
+      if (first == null) { first = pin; pin = ""; draw(); setSub(); return; }
+      if (pin !== first) { first = null; setSub(); shake("Die PINs stimmen nicht überein. Noch einmal von vorn."); return; }
+      busy = true; err.textContent = ""; sub.textContent = "Erzeuge deinen Schlüssel …";
+      try {
+        const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+        KEY = await deriveKey(pin, salt, ITER);
+        META = { v: VERSION, salt, iter: ITER, check: await encWith(KEY, { ok: true }), created: new Date().toISOString() };
+        await Store.set("meta", META);
+        S = emptyState();
+        CORE.forEach(n => dirty.add(n)); await flush();
+        pin = ""; first = null;
+        lastAct = Date.now(); TAB = "heute"; shell();
+        setTimeout(() => openInterview(0), 250);
+      } catch (e) { console.error(e); KEY = null; busy = false; sub.textContent = "Der Tresor konnte nicht angelegt werden. Lade die Seite neu und versuch es noch einmal."; }
+      return;
+    }
+    const f = fails();
+    if (f.until > Date.now()) { shake(`Zu viele Fehlversuche. Warte ${Math.ceil((f.until - Date.now()) / 1000)} Sekunden.`); return; }
+    busy = true; sub.textContent = "Entschlüssele …";
+    try {
+      let m = meta, k = await deriveKey(pin, m.salt, m.iter);
+      try { await decWith(k, m.check); }
+      catch (e1) {
+        const next = await Store.get("meta-next").catch(() => null);
+        if (!next) throw e1;
+        k = await deriveKey(pin, next.salt, next.iter); await decWith(k, next.check);
+        m = next; await Store.set("meta", next); await Store.del("meta-next");
+      }
+      KEY = k; META = m;
+      await loadVault();
+      lsDel("fails"); pin = "";
+      lastAct = Date.now(); TAB = "heute"; shell();
+      if (answeredCount() === 0) setTimeout(() => openInterview(0), 250);
+    } catch (e) {
+      busy = false; setSub(); KEY = null; S = null;
+      if (e && e.name === "OperationError") {
+        const n = f.n + 1;
+        const wait = n >= 5 ? Math.min(3600, 30 * 2 ** (n - 5)) : 0;
+        lsSet("fails", JSON.stringify({ n, until: Date.now() + wait * 1000 }));
+        shake(wait ? `Falsche PIN. Nächster Versuch in ${wait} Sekunden.` : `Falsche PIN. Noch ${5 - n} Versuche ohne Wartezeit.`);
+      } else { console.error(e); shake("Deine Daten konnten nicht geladen werden. Prüfe die Verbindung."); }
+    }
+  }
+  const pad = el("div", { class: "pad" });
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9"].forEach(d => pad.append(el("button", { type: "button", onclick: () => press(d), text: d })));
+  pad.append(el("button", { type: "button", class: "fn", "aria-label": "Löschen", onclick: () => press("del"), text: "Löschen" }));
+  pad.append(el("button", { type: "button", onclick: () => press("0"), text: "0" }));
+  pad.append(el("button", { type: "button", class: "fn ok", onclick: () => press("ok"), text: creating ? "Weiter" : "Öffnen" }));
+  const onKey = (e) => {
+    if (!document.body.contains(pad)) { window.removeEventListener("keydown", onKey); return; }
+    if (/^\d$/.test(e.key)) press(e.key); else if (e.key === "Backspace") press("del"); else if (e.key === "Enter") press("ok");
+  };
+  window.addEventListener("keydown", onKey);
+  card.append(markEl, title, sub, dots, err, pad,
+    el("p", { class: "small muted", text: Store.mode === "cloud" ? "Speicher: dein privater, verschlüsselter Bereich in Claude. Nur du hast Zugriff." : "Speicher: verschlüsselt nur in diesem Browser." }));
+}
+
+/* ---------- boot ---------- */
+showLock();
+</script>
