@@ -92,6 +92,17 @@ async function yellowPixelsNear(page, x, y) {
   }, buf.toString('base64'));
 }
 
+// Poll with page.evaluate (runs over CDP). page.waitForFunction would need 'unsafe-eval', which
+// the production CSP rightly forbids (Playwright <= 1.49 then throws an EvalError immediately).
+async function waitFor(page, fn, timeout = 8000) {
+  const end = Date.now() + timeout;
+  while (Date.now() < end) {
+    if (await page.evaluate(fn).catch(() => false)) return true;
+    await sleep(100);
+  }
+  return false;
+}
+
 async function state(page) {
   return page.evaluate(() => ({ mode: window.__bodensee.mode, found: window.__bodensee.found, sub: window.__bodensee.sub }));
 }
@@ -121,7 +132,7 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   });
   const resp = await page.goto(base, { waitUntil: 'load' });
   check(`${label}: page loads (HTTP ${resp.status()})`, resp.ok());
-  await page.waitForFunction(() => window.__bodensee && window.__bodensee.mode === 'title', null, { timeout: 8000 });
+  if (!(await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title'))) throw new Error('game did not reach the title screen');
   await sleep(600);
   const vp = page.viewportSize();
   const tag = label.replace(/[^a-z0-9]+/gi, '-').toLowerCase();
@@ -132,7 +143,7 @@ async function runDevice(browser, base, label, ctxOpts, full) {
 
   // start + intro dialog
   await page.click('#btnStart');
-  await page.waitForFunction(() => window.__bodensee.mode === 'dialog');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
   await sleep(300);
   await page.screenshot({ path: path.join(shotsDir, `${tag}-2-intro.png`) });
   const reachedPlay = await clickUntil(page, '#btnDialogNext', async () => (await state(page)).mode === 'play', 14);
@@ -226,9 +237,9 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   const sites = await page.evaluate(() => window.__bodensee.sites);
   await page.evaluate((s) => window.__bodensee.teleport(s.x - 20, s.y), sites[0]);
   await page.screenshot({ path: path.join(shotsDir, `${tag}-3-play.png`) });
-  await page.waitForFunction(() => window.__bodensee.mode === 'card', null, { timeout: 6000 }).catch(() => {});
+  await waitFor(page, () => window.__bodensee.mode === 'card', 10000);
   const afterFind = await state(page);
-  check(`${label}: approaching a logbook page opens the discovery card`, afterFind.mode === 'card' && afterFind.found.length === 1);
+  check(`${label}: approaching a logbook page opens the discovery card`, afterFind.mode === 'card' && afterFind.found.length === 1, `mode=${afterFind.mode} found=${afterFind.found.length}`);
   await sleep(700);
   await page.screenshot({ path: path.join(shotsDir, `${tag}-5-card.png`) });
   const cardFits = await page.evaluate(() => {
@@ -241,7 +252,7 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   if (full) {
     for (const s of sites.slice(1)) {
       await page.evaluate((p) => window.__bodensee.teleport(p.x - 20, p.y), s);
-      await page.waitForFunction(() => window.__bodensee.mode === 'card', null, { timeout: 6000 }).catch(() => {});
+      await waitFor(page, () => window.__bodensee.mode === 'card', 10000);
       await sleep(300);
       if (s.id === 'jura') await page.screenshot({ path: path.join(shotsDir, `${tag}-6-jura-card.png`) });
       await page.click('#btnCardClose');
@@ -302,7 +313,7 @@ async function remoteChecks(base) {
   } else {
     await remoteChecks(base);
   }
-  const browser = await chromium.launch();
+  const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {});
   const runs = [
     ['iPhone 13 hochkant', devices['iPhone 13']],
     ['iPhone 13 quer', devices['iPhone 13 landscape']],
