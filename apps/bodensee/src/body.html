@@ -1,0 +1,188 @@
+<div id="app">
+  <canvas id="scene" aria-label="Unterwasserwelt des Bodensees mit dem gelben U-Boot"></canvas>
+
+  <!-- In-game HUD -->
+  <div id="hud" class="hud" hidden>
+    <div class="hud-top">
+      <div class="gauge" aria-live="off">
+        <canvas id="depthGauge" width="120" height="120" aria-hidden="true"></canvas>
+        <div class="gauge-readout"><span class="label">Tiefe</span><b id="depthVal">0 m</b></div>
+      </div>
+
+      <button id="btnLog" class="pages" type="button" aria-label="Logbuch öffnen">
+        <span class="page-row" id="pageRow">
+          <i class="pg"></i><i class="pg"></i><i class="pg"></i><i class="pg"></i><i class="pg"></i>
+        </span>
+        <span class="pages-label">Logbuch <span id="logCount">0/5</span></span>
+      </button>
+
+      <div class="hud-right">
+        <button id="btnSound" class="icon-btn" type="button" aria-label="Ton ausschalten" aria-pressed="true">
+          <svg class="ico ico-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>
+          <svg class="ico ico-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M17 9l5 6M22 9l-5 6"/></svg>
+        </button>
+        <button id="btnPause" class="icon-btn" type="button" aria-label="Pause">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>
+        </button>
+      </div>
+    </div>
+    <p class="scale-note">Karte nicht maßstabsgetreu</p>
+
+    <div class="hud-bottom">
+      <div class="sonar" aria-hidden="true">
+        <canvas id="sonarScope" width="160" height="160"></canvas>
+        <span>Sonar</span>
+      </div>
+      <div class="actions">
+        <button id="btnLight" class="round-btn light-btn" type="button" aria-label="Scheinwerfer ausschalten" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>
+          <span>Licht</span>
+        </button>
+        <button id="btnPing" class="round-btn ping-btn" type="button" aria-label="Sonar-Ping: zeigt die Richtung zur nächsten Logbuch-Seite">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.2"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M5 5a10 10 0 0 0 0 14M19 5a10 10 0 0 1 0 14"/></svg>
+          <span>Ping</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="radio" class="radio" hidden>
+      <canvas class="avatar" width="96" height="96" aria-hidden="true"></canvas>
+      <div class="radio-body">
+        <b class="radio-who">Funk · Prof. Ida Wellenstein</b>
+        <p id="radioText" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div id="pingHint" class="ping-hint" hidden>
+      <div class="ping-arrow" id="pingArrow"></div>
+      <p id="pingText"></p>
+    </div>
+
+    <div id="touchHint" class="touch-hint" hidden>
+      <div class="finger"></div>
+      <p>Halte den Finger aufs Wasser.<br>Das U-Boot fährt dorthin.</p>
+    </div>
+
+    <div id="fishTag" class="fish-tag" hidden></div>
+  </div>
+
+  <!-- Title screen -->
+  <section id="title" class="screen title-screen" aria-labelledby="titleHead">
+    <div class="title-inner">
+      <p class="eyebrow">Ein Unterwasser-Abenteuer</p>
+      <h1 id="titleHead"><span class="t-small">Leopolds</span><span class="t-big">Bodensee-Expedition</span></h1>
+      <p class="tagline">Tauche mit dem gelben U-Boot hinab, finde die fünf verlorenen Logbuch-Seiten und lerne die Geheimnisse des Sees kennen.</p>
+      <div class="title-actions">
+        <button id="btnContinue" class="btn btn-primary" type="button" hidden>Weiterspielen</button>
+        <button id="btnStart" class="btn btn-primary" type="button">Expedition starten</button>
+      </div>
+      <div class="control-pick" role="radiogroup" aria-label="Steuerung">
+        <span class="cp-label">Steuerung</span>
+        <button class="seg" type="button" role="radio" data-control="hold" aria-checked="true">Finger halten</button>
+        <button class="seg" type="button" role="radio" data-control="stick" aria-checked="false">Joystick ziehen</button>
+      </div>
+      <p class="fine">Keine Werbung · keine Datensammlung · Ton am besten mit Kopfhörern</p>
+    </div>
+  </section>
+
+  <!-- Big radio dialog (intro & finale) -->
+  <section id="dialog" class="screen dialog-screen" hidden aria-live="polite">
+    <div class="dialog-box">
+      <canvas class="avatar big" width="160" height="160" aria-hidden="true"></canvas>
+      <div class="dialog-body">
+        <b class="radio-who">Funkspruch · Prof. Ida Wellenstein</b>
+        <p id="dialogText"></p>
+        <div class="dialog-foot">
+          <span id="dialogStep" class="dialog-step"></span>
+          <button id="btnDialogNext" class="btn btn-primary small" type="button">Weiter</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="pause" class="screen panel-screen" hidden aria-labelledby="pauseHead">
+    <div class="panel">
+      <h2 id="pauseHead">Pause</h2>
+      <p class="panel-sub">Das U-Boot wartet ruhig im Wasser.</p>
+      <div class="panel-actions">
+        <button id="btnResume" class="btn btn-primary" type="button">Weiterspielen</button>
+        <button id="btnPauseLog" class="btn" type="button">Logbuch &amp; Fischbuch</button>
+        <button id="btnRestart" class="btn btn-quiet" type="button">Neue Expedition starten</button>
+      </div>
+      <div class="control-pick" role="radiogroup" aria-label="Steuerung">
+        <span class="cp-label">Steuerung</span>
+        <button class="seg" type="button" role="radio" data-control="hold" aria-checked="true">Finger halten</button>
+        <button class="seg" type="button" role="radio" data-control="stick" aria-checked="false">Joystick ziehen</button>
+      </div>
+      <p class="fine">Alle Fundorte sind im Spiel nicht maßstabsgetreu dargestellt.</p>
+    </div>
+  </section>
+
+  <!-- Discovery card -->
+  <section id="card" class="screen card-screen" hidden aria-labelledby="cardTitle">
+    <article class="card">
+      <p class="card-eyebrow" id="cardEyebrow">Logbuch-Seite 1 von 5</p>
+      <h2 id="cardTitle">Titel</h2>
+      <canvas id="cardArt" class="card-art" width="960" height="540" aria-hidden="true"></canvas>
+      <ul id="cardFacts" class="card-facts"></ul>
+      <p class="card-note">Fundort im Spiel nicht maßstabsgetreu.</p>
+      <button id="btnCardClose" class="btn btn-primary" type="button">Weiter forschen</button>
+    </article>
+  </section>
+
+  <!-- Logbook / fish book -->
+  <section id="logbook" class="screen panel-screen" hidden aria-labelledby="logHead">
+    <div class="panel wide">
+      <div class="log-head">
+        <h2 id="logHead">Logbuch</h2>
+        <button id="btnLogClose" class="icon-btn dark" type="button" aria-label="Logbuch schließen">
+          <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path class="stroke" d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button id="tabSites" class="tab" type="button" role="tab" aria-selected="true">Entdeckungen <span id="tabSitesCount">0/5</span></button>
+        <button id="tabFish" class="tab" type="button" role="tab" aria-selected="false">Fischbuch <span id="tabFishCount">0/7</span></button>
+      </div>
+      <div id="logSites" class="log-grid" role="tabpanel"></div>
+      <div id="logFish" class="log-grid" role="tabpanel" hidden></div>
+      <p class="fine">Fundorte nicht maßstabsgetreu. Tippe auf eine gefundene Seite, um sie noch einmal zu lesen.</p>
+    </div>
+  </section>
+
+  <!-- Ending -->
+  <section id="ending" class="screen panel-screen" hidden aria-labelledby="endHead">
+    <div class="certificate">
+      <p class="cert-eyebrow">Seeforschungsstation Bodensee</p>
+      <h2 id="endHead">Urkunde</h2>
+      <p class="cert-text">Kapitän <b>Leopold</b> hat alle fünf Logbuch-Seiten auf dem Grund des Bodensees gefunden und ist ab heute</p>
+      <p class="cert-title">Ehren-Seeforscher</p>
+      <dl class="cert-stats">
+        <div><dt>Entdeckungen</dt><dd id="statSites">5/5</dd></div>
+        <div><dt>Fischarten</dt><dd id="statFish">0/7</dd></div>
+        <div><dt>Tiefster Tauchgang</dt><dd id="statDepth">0 m</dd></div>
+        <div><dt>Expeditionszeit</dt><dd id="statTime">0:00</dd></div>
+      </dl>
+      <p class="cert-sign"><span id="certDate"></span><span>Prof. Ida Wellenstein</span></p>
+      <div class="panel-actions row">
+        <button id="btnRoam" class="btn btn-primary" type="button">Weiter erkunden</button>
+        <button id="btnNewGame" class="btn" type="button">Neue Expedition</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Restart confirmation (built into the page; no confirm() dialogs) -->
+  <section id="confirm" class="screen panel-screen" hidden aria-labelledby="confirmHead">
+    <div class="panel">
+      <h2 id="confirmHead">Neue Expedition?</h2>
+      <p class="panel-sub">Alle gefundenen Logbuch-Seiten und das Fischbuch werden zurückgesetzt.</p>
+      <div class="panel-actions row">
+        <button id="btnConfirmYes" class="btn btn-primary" type="button">Ja, neu starten</button>
+        <button id="btnConfirmNo" class="btn" type="button">Nein, zurück</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="rotateNote" class="rotate-note" hidden>Tipp: Im Querformat siehst du mehr vom See.</div>
+  <noscript><p class="noscript">Bitte JavaScript aktivieren, um die Expedition zu starten.</p></noscript>
+</div>

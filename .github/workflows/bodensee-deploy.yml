@@ -1,0 +1,198 @@
+name: Bodensee Deploy
+# Leopolds Bodensee-Expedition (apps/bodensee) -> https://bodensee.malelu.io on the MALELU Traefik VPS.
+#  test:   build, Playwright smoke test (iPhone/iPad/desktop), build + run the real container, test it again
+#  deploy: copy the release to /opt/bodensee/releases/<sha> on the VPS and run ops/deploy.sh (auto-rollback)
+#          Skips with a notice when no VPS SSH secrets are configured.
+#  dns:    optional – creates the proxied Cloudflare A record if CLOUDFLARE_API_TOKEN + CLOUDFLARE_ZONE_ID exist
+#  verify: smoke test against the public HTTPS URL
+# Secrets (BODENSEE_* take precedence over the shared VPS_* ones): BODENSEE_VPS_HOST|VPS_HOST,
+# BODENSEE_VPS_USER|VPS_USER, BODENSEE_VPS_PORT|VPS_PORT, BODENSEE_VPS_SSH_KEY|VPS_SSH_KEY.
+on:
+  push:
+    branches: [main, claude/bold-hawking-vsp7wz]
+    paths: ['apps/bodensee/**', '.github/workflows/bodensee-deploy.yml']
+  pull_request:
+    paths: ['apps/bodensee/**', '.github/workflows/bodensee-deploy.yml']
+  workflow_dispatch:
+    inputs:
+      action:
+        description: deploy or rollback
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bodensee-${{ github.event_name == 'pull_request' && github.head_ref || 'deploy' }}
+  cancel-in-progress: false
+
+env:
+  PUBLIC_URL: https://bodensee.malelu.io/
+  PLAYWRIGHT_VERSION: 1.49.1
+
+jobs:
+  test:
+    if: github.event_name != 'workflow_dispatch' || inputs.action == 'deploy'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/bodensee
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: node build.mjs --version "${GITHUB_SHA::12}"
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+      - name: Smoke test (local build, production headers)
+        run: node tests/smoke.cjs --dir public --shots shots/local
+      - name: Build container image
+        run: docker build --build-arg GIT_SHA="${GITHUB_SHA::12}" -t bodensee:ci .
+      - name: Run container (read-only, no capabilities, like production)
+        run: |
+          docker run -d --name bodensee-ci --read-only --tmpfs /tmp:size=16m --cap-drop ALL \
+            --security-opt no-new-privileges:true -p 8080:8080 bodensee:ci
+          for i in $(seq 1 30); do
+            s=$(docker inspect -f '{{.State.Health.Status}}' bodensee-ci)
+            [ "$s" = healthy ] && break
+            sleep 2
+          done
+          docker inspect -f 'health: {{.State.Health.Status}}' bodensee-ci
+          curl -fsS http://127.0.0.1:8080/health
+          curl -fsSI http://127.0.0.1:8080/ | grep -i content-security-policy
+      - name: Smoke test (container)
+        run: node tests/smoke.cjs --url http://127.0.0.1:8080/ --allow-http --quick --shots shots/container
+      - name: Container logs
+        if: always()
+        run: docker logs bodensee-ci 2>&1 | tail -50 || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bodensee-screenshots
+          path: apps/bodensee/shots
+          retention-days: 14
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy')
+    runs-on: ubuntu-24.04
+    outputs:
+      deployed: ${{ steps.creds.outputs.ok }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check deploy credentials
+        id: creds
+        env:
+          H: ${{ secrets.BODENSEE_VPS_HOST || secrets.VPS_HOST }}
+          K: ${{ secrets.BODENSEE_VPS_SSH_KEY || secrets.VPS_SSH_KEY }}
+        run: |
+          if [ -n "$H" ] && [ -n "$K" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            msg="BLOCKER: no VPS SSH secrets (BODENSEE_VPS_HOST/BODENSEE_VPS_SSH_KEY or VPS_HOST/VPS_SSH_KEY) in this repository – deploy skipped. Manual deploy: see apps/bodensee/README.md."
+            echo "::warning::$msg"
+            echo "### Bodensee deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload release to the VPS
+        if: steps.creds.outputs.ok == 'true'
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.BODENSEE_VPS_HOST || secrets.VPS_HOST }}
+          username: ${{ secrets.BODENSEE_VPS_USER || secrets.VPS_USER || 'root' }}
+          port: ${{ secrets.BODENSEE_VPS_PORT || secrets.VPS_PORT || 22 }}
+          key: ${{ secrets.BODENSEE_VPS_SSH_KEY || secrets.VPS_SSH_KEY }}
+          source: apps/bodensee/Dockerfile,apps/bodensee/.dockerignore,apps/bodensee/docker-compose.yml,apps/bodensee/build.mjs,apps/bodensee/src,apps/bodensee/nginx,apps/bodensee/ops
+          target: /opt/bodensee/releases/${{ github.sha }}
+          strip_components: 2
+      - name: Deploy (automatic rollback on failure)
+        if: steps.creds.outputs.ok == 'true'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.BODENSEE_VPS_HOST || secrets.VPS_HOST }}
+          username: ${{ secrets.BODENSEE_VPS_USER || secrets.VPS_USER || 'root' }}
+          port: ${{ secrets.BODENSEE_VPS_PORT || secrets.VPS_PORT || 22 }}
+          key: ${{ secrets.BODENSEE_VPS_SSH_KEY || secrets.VPS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 15m
+          script: bash /opt/bodensee/releases/${{ github.sha }}/ops/deploy.sh "$(echo ${{ github.sha }} | cut -c1-12)"
+
+  dns:
+    needs: deploy
+    if: needs.deploy.outputs.deployed == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Ensure proxied Cloudflare A record for bodensee.malelu.io (create only, never modify)
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+          ORIGIN: ${{ secrets.BODENSEE_ORIGIN_IP || secrets.BODENSEE_VPS_HOST || secrets.VPS_HOST }}
+        run: |
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ZONE" ]; then
+            echo "No Cloudflare API secrets – DNS left as is. If bodensee.malelu.io does not resolve: Cloudflare → malelu.io → DNS → A bodensee → VPS IP (proxied)."
+            exit 0
+          fi
+          IP="$ORIGIN"
+          if ! [[ "$IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then IP="$(getent ahostsv4 "$ORIGIN" | awk 'NR==1{print $1}')"; fi
+          [ -n "$IP" ] || { echo "::error::could not resolve origin IP"; exit 1; }
+          api="https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records"
+          count=$(curl -fsS -H "Authorization: Bearer $CF_TOKEN" "$api?name=bodensee.malelu.io" | jq '.result | length')
+          if [ "$count" != "0" ]; then echo "DNS record exists – unchanged"; exit 0; fi
+          curl -fsS -X POST -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" "$api" \
+            --data "{\"type\":\"A\",\"name\":\"bodensee\",\"content\":\"$IP\",\"proxied\":true,\"ttl\":1,\"comment\":\"Leopolds Bodensee-Expedition\"}" | jq '.success'
+
+  verify:
+    needs: [deploy, dns]
+    if: needs.deploy.outputs.deployed == 'true'
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/bodensee
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait for the public URL
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS --max-time 10 "${PUBLIC_URL}health" | grep -q '"status":"ok"'; then echo "public health ok"; exit 0; fi
+            sleep 10
+          done
+          echo "::error::${PUBLIC_URL} not reachable after 5 minutes (DNS record or certificate missing?)"
+          exit 1
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save --no-audit --no-fund "playwright@${PLAYWRIGHT_VERSION}"
+          npx playwright install --with-deps chromium
+      - name: Smoke test (public HTTPS URL)
+        run: node tests/smoke.cjs --url "$PUBLIC_URL" --shots shots/public
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bodensee-public-screenshots
+          path: apps/bodensee/shots
+          retention-days: 14
+
+  rollback:
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'rollback'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Roll back to the previous release
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.BODENSEE_VPS_HOST || secrets.VPS_HOST }}
+          username: ${{ secrets.BODENSEE_VPS_USER || secrets.VPS_USER || 'root' }}
+          port: ${{ secrets.BODENSEE_VPS_PORT || secrets.VPS_PORT || 22 }}
+          key: ${{ secrets.BODENSEE_VPS_SSH_KEY || secrets.VPS_SSH_KEY }}
+          script_stop: true
+          script: bash /opt/bodensee/current/ops/rollback.sh

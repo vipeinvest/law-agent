@@ -1,0 +1,81 @@
+# Leopolds Bodensee-Expedition
+
+Ein ruhiges Unterwasser-Forschungsspiel für Leopold: Mit dem gelben U-Boot **LEO 1** taucht man in den Bodensee, findet fünf verlorene Logbuch-Seiten von Professorin Ida Wellenstein und lernt dabei echte Fakten über den See.
+
+- **Ziel-URL:** https://bodensee.malelu.io (MALELU Traefik-VPS, Docker, Cloudflare)
+- **Läuft auf:** iPhone und iPad (Safari, hoch und quer), Android, Desktop – ohne App-Download. Über „Zum Home-Bildschirm“ als Vollbild-App mit Offline-Modus.
+- **Datenschutz:** keine Tracker, keine Drittanbieter-Requests, keine personenbezogenen Daten. Gespeichert wird nur der Spielstand lokal im Browser (`localStorage`).
+
+## Spielinhalt
+
+| Ort | Tiefe im Spiel | Inhalt |
+|---|---|---|
+| Pfahlbauten | ca. 9 m | über 5000 Jahre alt, UNESCO-Welterbe seit 2011, nachgebaute Häuser über dem Wasser |
+| Felchen-Schwarm | ca. 12 m | wichtigster Fisch der Bodensee-Fischer, Plankton, silberne Tarnung |
+| Alter Anker | ca. 22 m | Lädinen (Lastsegler) mit Holz, Salz und Getreide |
+| Riesenwels | ca. 29 m | größter Fisch im See, Barteln, nachtaktiv |
+| Dampfschiff Jura | rund 38 m (Wrack am Grund) | hölzerner Raddampfer, 1864 im Nebel nach Kollision mit der „Stadt Zürich“ gesunken, 1953 wiederentdeckt |
+
+Alle Fundorte sind im Spiel ausdrücklich als **nicht maßstabsgetreu** gekennzeichnet. Dazu kommt ein Fischbuch mit 7 Arten (Felchen, Rotauge, Flussbarsch, Hecht, Seeforelle, Trüsche, Wels), eine Urkunde am Ende, keine Gegner und kein Zeitdruck.
+
+**Steuerung:** Finger aufs Wasser halten, dann fährt das U-Boot dorthin. Ziehen mit gehaltenem Finger lenkt um. Alternativ gibt es einen Joystick-Modus (Pause → Steuerung). Buttons: Pause, Neustart (mit Rückfrage), Ton, Licht, Sonar-Ping, Logbuch. Tastatur: Pfeile/WASD, Leertaste = Ping, L = Licht, P/Esc = Pause.
+
+**Technik:** HTML5 Canvas 2D, eine JS-Datei ohne Abhängigkeiten. Alle Grafiken werden zur Laufzeit gezeichnet: Tiefenverlauf, Lichtstrahlen, Kaustiken, Scheinwerferkegel mit Dunkelheit je nach Tiefe, Partikel, Schwarm-Verhalten, Sonar. Musik und Geräusche erzeugt die Web Audio API (Ambient-Musik, Wasser, Motor, Blasen, Sonar mit Echo, Funk, Fund-Melodie). Pointer Events mit `setPointerCapture` und `touch-action: none` (Touch-Fallback für alte iOS-Versionen). Auflösung und Lichtqualität passen sich langsamen Geräten automatisch an.
+
+## Aufbau
+
+```
+src/body.html  src/style.css  src/game.js   Quellcode
+src/assets/                                  Icons, Manifest, Service Worker, robots.txt
+build.mjs                                    -> public/ (Server) und dist/artifact.html (Einzeldatei)
+nginx/                                       nginx-Konfiguration, CSP und Sicherheits-Header, /health
+Dockerfile  docker-compose.yml               Container (nginx-unprivileged, read-only, ohne Capabilities)
+ops/deploy.sh  ops/rollback.sh               Deploy mit automatischem Rollback / manuelles Rollback
+tests/smoke.cjs                              Playwright-Smoke-Test (iPhone, iPad, Desktop)
+```
+
+## Lokal entwickeln und testen
+
+```bash
+cd apps/bodensee
+node build.mjs                         # baut public/ und dist/artifact.html
+node tests/smoke.cjs --dir public      # 92 Checks auf 5 Geräteprofilen, Screenshots in tests/screenshots/
+python3 -m http.server -d public 8000  # zum Ausprobieren
+```
+
+## Deployment
+
+### Automatisch (GitHub Actions „Bodensee Deploy“)
+
+Der Workflow startet bei jedem Push auf `main` (oder den Feature-Branch), der `apps/bodensee/**` ändert:
+
+1. **test** – Build, Smoke-Test, Docker-Image bauen und read-only starten, Smoke-Test gegen den Container.
+2. **deploy** – kopiert das Release nach `/opt/bodensee/releases/<sha>` und führt `ops/deploy.sh` aus. Braucht die Secrets `BODENSEE_VPS_HOST`, `BODENSEE_VPS_USER`, `BODENSEE_VPS_PORT` und `BODENSEE_VPS_SSH_KEY`, sonst die gemeinsamen `VPS_*`. Fehlen sie, wird der Schritt mit einem Hinweis übersprungen.
+3. **dns** – optional mit `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`: legt den Cloudflare-A-Record `bodensee` (proxied) auf die VPS-IP an, falls er noch fehlt. Bestehende Einträge werden nie geändert.
+4. **verify** – wartet auf `https://bodensee.malelu.io/health` und führt den Smoke-Test gegen die öffentliche URL aus.
+
+### Manuell auf dem VPS (eine Zeile)
+
+```bash
+git clone --depth 1 -b claude/bold-hawking-vsp7wz https://github.com/vipeinvest/law-agent /opt/bodensee/src \
+  && bash /opt/bodensee/src/apps/bodensee/ops/deploy.sh
+# Update später:
+cd /opt/bodensee/src && git pull && bash apps/bodensee/ops/deploy.sh
+```
+
+`deploy.sh` erkennt das Traefik-Netz (`traefik-proxy` oder `traefik`) und bricht ohne Änderungen ab, wenn keines existiert. Es baut `bodensee:<tag>`, startet den Container `bodensee-web` (Compose-Projekt `bodensee`, keine offenen Ports) und prüft den Container-Health-Check und die Traefik-Route über `127.0.0.1:443`. Schlägt etwas fehl, läuft automatisch wieder das vorherige Release, oder der neue Container wird entfernt. Andere Dienste werden nicht angefasst.
+
+**DNS (einmalig, falls nicht per Workflow):** Cloudflare → `malelu.io` → DNS → `A  bodensee  <VPS-IP>`, Proxy an (orange), wie bei `businessone.malelu.io`.
+
+Variablen bei abweichender Traefik-Konfiguration: `TRAEFIK_NETWORK`, `TRAEFIK_ENTRYPOINT` (Standard `websecure`), `TRAEFIK_CERTRESOLVER` (Standard `letsencrypt`), `BODENSEE_HOST`.
+
+### Rollback
+
+```bash
+bash /opt/bodensee/current/ops/rollback.sh       # vorheriges Release wieder starten
+# oder: GitHub Actions → Bodensee Deploy → Run workflow → action = rollback
+# Spiel komplett offline nehmen:
+docker compose -p bodensee -f /opt/bodensee/current/docker-compose.yml down
+```
+
+Status und Historie: `cat /opt/bodensee/CURRENT /opt/bodensee/deploy.log`, `docker ps --filter name=bodensee-web`, `curl -s https://bodensee.malelu.io/health`.

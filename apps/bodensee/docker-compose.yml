@@ -1,0 +1,48 @@
+# Leopolds Bodensee-Expedition on the MALELU Traefik VPS.
+# Same conventions as businessone/gastromarge: external Traefik network, entrypoint "websecure",
+# Let's Encrypt resolver "letsencrypt", Cloudflare in front. No published ports.
+# Normally started by ops/deploy.sh, which builds the image, sets BODENSEE_TAG and detects the network.
+name: bodensee
+services:
+  web:
+    image: bodensee:${BODENSEE_TAG:-latest}
+    build:
+      context: .
+      args:
+        GIT_SHA: ${BODENSEE_TAG:-dev}
+    container_name: bodensee-web
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    pids_limit: 64
+    networks: [proxy]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik-proxy}
+      traefik.http.routers.bodensee.rule: Host(`${BODENSEE_HOST:-bodensee.malelu.io}`)
+      traefik.http.routers.bodensee.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.bodensee.tls: 'true'
+      traefik.http.routers.bodensee.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.routers.bodensee.middlewares: bodensee-compress
+      traefik.http.middlewares.bodensee-compress.compress: 'true'
+      traefik.http.services.bodensee.loadbalancer.server.port: '8080'
+      traefik.http.services.bodensee.loadbalancer.healthcheck.path: /health
+      traefik.http.services.bodensee.loadbalancer.healthcheck.interval: 15s
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '3' }
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik-proxy}

@@ -1,0 +1,6 @@
+public
+dist
+tests
+tools
+node_modules
+*.md
