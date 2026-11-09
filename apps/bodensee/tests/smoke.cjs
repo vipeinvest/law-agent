@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* Smoke test for Leopolds Bodensee-Expedition.
+/* Smoke test for Die große Bodensee-Expedition.
  *
  *   node tests/smoke.cjs --dir public            # local build, served with the production headers
  *   node tests/smoke.cjs --url https://bodensee.malelu.io
@@ -660,6 +660,33 @@ async function languageChecks(browser, base) {
   await context.close();
 }
 
+// ---------------------------------------------------------------- name on the title screen, certificate as a picture
+async function nameChecks(browser, base) {
+  console.log('\n▶ Name und Urkunde');
+  const context = await browser.newContext({ viewport: { width: 1024, height: 700 }, serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('stand-in')); });
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('neutral title', (await page.textContent('#titleHead')).includes('Die große') && !(await page.textContent('#titleHead')).includes('Leopold'));
+  await page.fill('#playerName', 'Mia <b>');
+  await page.reload({ waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('the name is kept, without markup', (await page.inputValue('#playerName')) === 'Mia b', await page.inputValue('#playerName'));
+  await page.click('#btnStart');
+  const greeted = await waitFor(page, () => document.getElementById('dialogText').textContent.includes('Kapitän Mia b'), 9000);
+  check('the radio message greets the child by name', greeted);
+  const size = await page.evaluate(async () => (await window.__bodensee.certificate()).size);
+  check('the certificate picture is made', size > 20000, String(size));
+  await context.close();
+  const linked = await browser.newContext({ serviceWorkers: 'block' });
+  const page2 = await linked.newPage();
+  await page2.goto(`${base}?name=Leopold`, { waitUntil: 'load' });
+  await waitFor(page2, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('a family link fills in the name', (await page2.inputValue('#playerName')) === 'Leopold');
+  await linked.close();
+}
+
 // ---------------------------------------------------------------- remote-only checks
 async function remoteChecks(base) {
   console.log(`\n▶ HTTP checks ${base}`);
@@ -689,7 +716,7 @@ async function remoteChecks(base) {
     await remoteChecks(base);
   }
   const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {});
-  const parts = opt('--only', 'devices,speech,fullscreen,trips,languages').split(',');
+  const parts = opt('--only', 'devices,speech,fullscreen,trips,languages,name').split(',');
   const timeout = Number(opt('--timeout', 30000));
   const plainContext = browser.newContext.bind(browser);
   browser.newContext = async (o) => {
@@ -733,6 +760,11 @@ async function remoteChecks(base) {
     await tripChecks(browser, base);
   } catch (e) {
     check('trip run completed', false, e.message.split('\n')[0]);
+  }
+  if (parts.includes('name')) try {
+    await nameChecks(browser, base);
+  } catch (e) {
+    check('name run completed', false, e.message.split('\n')[0]);
   }
   if (parts.includes('languages')) try {
     await languageChecks(browser, base);

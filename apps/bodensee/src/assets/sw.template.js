@@ -1,4 +1,4 @@
-/* Offline support for Leopolds Bodensee-Expedition: network first, cache as fallback. */
+/* Offline support for Die große Bodensee-Expedition: network first, cache as fallback. */
 const CACHE = '__CACHE__';
 const PRECACHE = __PRECACHE__;
 

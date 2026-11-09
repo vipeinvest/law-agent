@@ -413,7 +413,7 @@ BE.views.ufer = (() => {
       state.alps = alpsAt(me.x);
       if (!BE.store.flags.uferHint) {
         BE.store.flags.uferHint = 1;
-        BE.toast('Halte den Finger rechts oder links neben Leopold, dann läuft er los!', 5);
+        BE.toast('Halte den Finger rechts oder links neben deiner Figur, dann läuft sie los!', 5);
       }
     },
     resize: layout,

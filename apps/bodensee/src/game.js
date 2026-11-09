@@ -1,4 +1,4 @@
-/* Leopolds Bodensee-Expedition
+/* Die große Bodensee-Expedition
  * Ein ruhiges Unterwasser-Forschungsspiel (HTML5 Canvas, ohne Abhängigkeiten, ohne Tracking).
  * Alle Grafiken werden zur Laufzeit gezeichnet, alle Klänge mit der Web Audio API erzeugt.
  */
@@ -394,6 +394,7 @@
     idle: 0,
     control: 'hold',
     muted: false,
+    name: '',
   };
   const bubbles = [];
   const sparkles = [];
@@ -2663,7 +2664,7 @@
   }
 
   const INTRO = [
-    'Funkspruch an das gelbe U-Boot LEO 1! Hallo Kapitän Leopold, hier spricht Professorin Ida Wellenstein von der Seeforschungsstation.',
+    'Funkspruch an das gelbe U-Boot LEO 1! Hallo {kapitaen}, hier spricht Professorin Ida Wellenstein von der Seeforschungsstation.',
     'Heute Nacht hat ein Sturm mein Forscher-Logbuch über Bord geweht. Fünf Seiten sind auf den Grund des Bodensees gesunken!',
     'Jede Seite liegt an einem besonderen Ort: bei uralten Pfählen, in einem Fischschwarm, an einem Anker, beim größten Fisch des Sees und bei einem versunkenen Dampfschiff.',
     'Die Seiten leuchten golden. Fahr ganz nah heran, dann scannt dein U-Boot die Seite automatisch und du erfährst ihr Geheimnis.',
@@ -2671,13 +2672,18 @@
     'Keine Eile, Kapitän – hier unten gibt es keine Gefahren, nur viel zu entdecken. Leinen los!',
   ];
   const FINALE = [
-    'Kapitän Leopold, du hast es geschafft! Alle fünf Seiten sind wieder da. Mein Logbuch ist vollständig!',
+    '{kapitaen}, du hast es geschafft! Alle fünf Seiten sind wieder da. Mein Logbuch ist vollständig!',
     'Pfahlbauten, Felchen, Anker, Wels und die Jura: Du kennst jetzt die Geheimnisse des Bodensees besser als viele Erwachsene.',
     'Dafür bekommst du von der Seeforschungsstation eine echte Urkunde. Herzlichen Glückwunsch!',
   ];
   const dialog = { lines: [], i: 0, shown: 0, done: null, read: false };
+  // The child's own name, if given, otherwise just "Kapitän".
+  function captain() {
+    return state.name ? _tf('Kapitän {name}', { name: state.name }) : _t('Kapitän');
+  }
+  const dialogLine = () => _tf(dialog.lines[dialog.i], { kapitaen: captain() });
   function readDialog() {
-    Reader.speak(_t(dialog.lines[dialog.i]), $('btnDialogSpeak'));
+    Reader.speak(dialogLine(), $('btnDialogSpeak'));
   }
   function runDialog(lines, done) {
     dialog.read = false;
@@ -2696,7 +2702,7 @@
   }
   function updateDialog(dt) {
     if (state.mode !== 'dialog') return;
-    const line = _t(dialog.lines[dialog.i]);
+    const line = dialogLine();
     if (dialog.shown < line.length) {
       const before = Math.floor(dialog.shown);
       dialog.shown = Math.min(line.length, dialog.shown + dt * 52);
@@ -2705,7 +2711,7 @@
   }
   function dialogNext() {
     Sound.click();
-    const line = _t(dialog.lines[dialog.i]);
+    const line = dialogLine();
     if (dialog.shown < line.length) {
       dialog.shown = line.length;
       $('dialogText').textContent = line;
@@ -3093,7 +3099,7 @@
     if (fromSave) {
       setMode('play');
       const left = SITES.length - state.found.length;
-      if (left > 0) say(_tf(left === 1 ? 'Willkommen zurück, Kapitän Leopold! Noch eine Seite fehlt. {hint}' : 'Willkommen zurück, Kapitän Leopold! Noch {n} Seiten fehlen. {hint}', { n: left, hint: _t(nearestUnfound(sub.x, sub.y).site.hint) }));
+      if (left > 0) say(_tf(left === 1 ? 'Willkommen zurück, {kapitaen}! Noch eine Seite fehlt. {hint}' : 'Willkommen zurück, {kapitaen}! Noch {n} Seiten fehlen. {hint}', { n: left, kapitaen: captain(), hint: _t(nearestUnfound(sub.x, sub.y).site.hint) }));
       else say('Willkommen zurück, Ehren-Seeforscher! Erkunde den See, so lange du magst.');
       updateHud(true);
     } else {
@@ -3150,6 +3156,7 @@
     $('statSites').textContent = `${state.found.length}/${SITES.length}`;
     $('statFish').textContent = `${state.seen.size}/${FISH_ORDER.length}`;
     $('statBook').textContent = `${BE.count()}/${BE.total()}`;
+    $('certName').textContent = captain();
     $('statDepth').textContent = `${Math.round(state.maxDepth)} m`;
     const sec = Math.round(state.elapsed);
     $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
@@ -3182,8 +3189,12 @@
   function clearSave() {
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* ignore */ }
   }
+  // Letters, spaces and hyphens only, so the name is safe everywhere it is shown or drawn.
+  function cleanName(s) {
+    return String(s || '').replace(/[^\p{L}\p{M} '’-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  }
   function saveSettings() {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ muted: state.muted, control: state.control })); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ muted: state.muted, control: state.control, name: state.name })); } catch (e) { /* ignore */ }
   }
   function loadSettings() {
     try {
@@ -3191,6 +3202,15 @@
       if (d) {
         state.muted = !!d.muted;
         if (d.control === 'stick' || d.control === 'hold') state.control = d.control;
+        state.name = cleanName(d.name);
+      }
+    } catch (e) { /* ignore */ }
+    // A family link like ?name=Leopold fills in the name once.
+    try {
+      const fromLink = new URLSearchParams(window.location.search).get('name');
+      if (fromLink) {
+        state.name = cleanName(fromLink);
+        saveSettings();
       }
     } catch (e) { /* ignore */ }
   }
@@ -3990,6 +4010,10 @@
     dialog.read = Reader.toggle(dialog.lines[dialog.i], $('btnDialogSpeak'));
   });
   bind('btnCardSpeak', () => Reader.toggle(cardSpeech, $('btnCardSpeak')));
+  bind('btnCertShare', () => {
+    Sound.click();
+    shareCertificate();
+  });
   bind('btnEndSpeak', () => {
     const text = `${document.querySelector('.cert-text').textContent} ${document.querySelector('.cert-title').textContent}.`;
     Reader.toggle(text, $('btnEndSpeak'));
@@ -4117,6 +4141,138 @@
     requestAnimationFrame(frame);
   }
 
+  // ------------------------------------------------------------------ certificate as a picture
+  // Drawn here and saved or shared from the device, so no address ever passes through a server.
+  function makeCertificate() {
+    const W2 = 1600;
+    const H2 = 1131;
+    const cv = document.createElement('canvas');
+    cv.width = W2;
+    cv.height = H2;
+    const c = cv.getContext('2d');
+    const DISPLAY = '"Futura","Avenir Next","Trebuchet MS","Segoe UI",sans-serif';
+    const HAND = '"Noteworthy","Segoe Print","Bradley Hand","Comic Sans MS",cursive';
+    const UI = '"Avenir Next","Segoe UI",system-ui,sans-serif';
+    const g = c.createLinearGradient(0, 0, 0, H2);
+    g.addColorStop(0, '#fbf3df');
+    g.addColorStop(1, '#f1e1bd');
+    c.fillStyle = g;
+    c.fillRect(0, 0, W2, H2);
+    c.strokeStyle = '#b98d3c';
+    c.lineWidth = 10;
+    c.strokeRect(40, 40, W2 - 80, H2 - 80);
+    c.lineWidth = 3;
+    c.strokeRect(64, 64, W2 - 128, H2 - 128);
+    for (const [x, y] of [[64, 64], [W2 - 64, 64], [64, H2 - 64], [W2 - 64, H2 - 64]]) {
+      c.fillStyle = '#b98d3c';
+      c.beginPath();
+      c.arc(x, y, 16, 0, TAU);
+      c.fill();
+    }
+    // waves and the yellow submarine along the bottom
+    c.strokeStyle = 'rgba(47,127,143,0.35)';
+    c.lineWidth = 4;
+    for (let row = 0; row < 3; row++) {
+      c.beginPath();
+      for (let x = 90; x <= W2 - 90; x += 6) c.lineTo(x, H2 - 150 + row * 22 + Math.sin(x * 0.02 + row) * 7);
+      c.stroke();
+    }
+    const sx = W2 - 300;
+    const sy = H2 - 205;
+    c.fillStyle = '#ffd23f';
+    c.beginPath();
+    c.ellipse(sx, sy, 95, 40, 0, 0, TAU);
+    c.fill();
+    c.fillRect(sx - 22, sy - 66, 44, 34);
+    c.fillStyle = '#7fc2d6';
+    for (const dx of [-42, 0, 42]) {
+      c.beginPath();
+      c.arc(sx + dx, sy, 13, 0, TAU);
+      c.fill();
+    }
+    const center = (text, y, font, color) => {
+      c.font = font;
+      c.fillStyle = color;
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.fillText(text, W2 / 2, y);
+    };
+    const wrap = (text, y, size, maxW) => {
+      c.font = `${size}px ${UI}`;
+      const lines = [];
+      let cur = '';
+      for (const w of text.split(' ')) {
+        const t = cur ? `${cur} ${w}` : w;
+        if (c.measureText(t).width > maxW && cur) {
+          lines.push(cur);
+          cur = w;
+        } else cur = t;
+      }
+      lines.push(cur);
+      lines.forEach((l, i) => center(l, y + i * size * 1.35, `${size}px ${UI}`, '#2a2316'));
+      return y + lines.length * size * 1.35;
+    };
+    center(_t('Seeforschungsstation Bodensee').toUpperCase(), 150, `700 30px ${UI}`, '#8a5a12');
+    center(_t('Urkunde'), 245, `700 96px ${DISPLAY}`, '#2a2316');
+    center(captain(), 370, `80px ${HAND}`, '#a2650d');
+    let y = wrap(_t('hat alle fünf Logbuch-Seiten auf dem Grund des Bodensees gefunden und ist ab heute'), 470, 38, 1100);
+    center(_t('Ehren-Seeforscher'), y + 50, `76px ${HAND}`, '#a2650d');
+    const stats = [['Entdeckungen', $('statSites').textContent], ['Fischarten', $('statFish').textContent], ['Tiefster Tauchgang', $('statDepth').textContent], ['Expeditionszeit', $('statTime').textContent], ['Forscherbuch', $('statBook').textContent]];
+    const bw = 230;
+    const gap = 24;
+    const x0 = (W2 - (stats.length * bw + (stats.length - 1) * gap)) / 2;
+    y += 150;
+    stats.forEach(([label, value], i) => {
+      const x = x0 + i * (bw + gap);
+      c.fillStyle = 'rgba(185,141,60,0.14)';
+      c.fillRect(x, y, bw, 104);
+      c.textAlign = 'center';
+      c.fillStyle = '#5b4d33';
+      c.font = `700 20px ${UI}`;
+      c.fillText(_t(label).toUpperCase(), x + bw / 2, y + 32, bw - 16);
+      c.fillStyle = '#2a2316';
+      c.font = `700 40px ${DISPLAY}`;
+      c.fillText(value, x + bw / 2, y + 76, bw - 16);
+    });
+    c.textAlign = 'left';
+    c.fillStyle = '#2a2316';
+    c.font = `30px ${UI}`;
+    c.fillText($('certDate').textContent, 150, H2 - 255);
+    c.textAlign = 'right';
+    c.font = `46px ${HAND}`;
+    c.fillStyle = '#2f5d8a';
+    c.fillText('Ida Wellenstein', W2 - 470, H2 - 262);
+    c.fillStyle = '#5b4d33';
+    c.font = `24px ${UI}`;
+    c.fillText('Prof. Ida Wellenstein', W2 - 470, H2 - 225);
+    c.textAlign = 'center';
+    c.font = `24px ${UI}`;
+    c.fillText(`${_t('Die große Bodensee-Expedition')} · bodensee.malelu.io`, W2 / 2, H2 - 92);
+    return cv;
+  }
+  async function shareCertificate() {
+    const blob = await new Promise((r) => makeCertificate().toBlob(r, 'image/png'));
+    if (!blob) return;
+    const name = 'bodensee-expedition-urkunde.png';
+    try {
+      const file = new File([blob], name, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: _t('Urkunde'), text: _t('Meine Urkunde aus der großen Bodensee-Expedition') });
+        return;
+      }
+    } catch (e) {
+      if (e && e.name === 'AbortError') return; // closed the share sheet
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
   // ------------------------------------------------------------------ language
   function syncTitleButtons() {
     const save = loadProgress();
@@ -4129,7 +4285,7 @@
   }
   function applyLanguage() {
     I18N.applyDom($('app'));
-    document.title = _t('Leopolds Bodensee-Expedition');
+    document.title = _t('Die große Bodensee-Expedition');
     document.querySelectorAll('.lang-seg').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.lang === I18N.lang)));
     syncTitleButtons();
     Fullscreen.sync();
@@ -4149,6 +4305,19 @@
     causticPattern = ctx.createPattern(causticCv, 'repeat');
     document.querySelectorAll('canvas.avatar').forEach(drawAvatar);
     resize();
+    const nameField = $('playerName');
+    nameField.value = state.name;
+    nameField.addEventListener('input', () => {
+      state.name = cleanName(nameField.value);
+      saveSettings();
+    });
+    nameField.addEventListener('change', () => { nameField.value = state.name; });
+    nameField.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      nameField.blur();
+      ($('btnContinue').hidden ? $('btnStart') : $('btnContinue')).click();
+    });
     applyLanguage();
     document.querySelectorAll('.lang-seg').forEach((b) => b.addEventListener('click', () => {
       Sound.click();
@@ -4186,9 +4355,10 @@
     say,
     ext: BE,
     i18n: I18N,
+    certificate: () => new Promise((r) => makeCertificate().toBlob(r, 'image/png')),
     // Everything the player can read, for the translation checks.
     i18nKeys() {
-      const keys = [...I18N.domKeys($('app')), 'Leopolds Bodensee-Expedition', ...INTRO, ...FINALE, ...BE.textKeys()];
+      const keys = [...I18N.domKeys($('app')), 'Die große Bodensee-Expedition', ...INTRO, ...FINALE, ...BE.textKeys()];
       for (const s of SITES) keys.push(s.title, ...s.facts, s.praise, s.hint);
       for (const k of FISH_ORDER) keys.push(SPECIES[k].name, SPECIES[k].fact);
       return [...new Set(keys.filter((k) => k && /[A-Za-zÄÖÜäöü]/.test(k)))];

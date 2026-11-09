@@ -21,7 +21,7 @@ const SOURCES = ['i18n.js', 'i18n-en.js', 'i18n-it.js', 'i18n-fr.js', 'ext-core.
 const js = SOURCES.map((f) => read(f)).join('\n').replace('__BUILD_VERSION__', version).trim();
 const hash = createHash('sha256').update(body + css + js).digest('hex').slice(0, 10);
 
-const TITLE = 'Leopolds Bodensee-Expedition';
+const TITLE = 'Die große Bodensee-Expedition';
 const DESCRIPTION = 'Ein ruhiges Unterwasser-Abenteuer am Bodensee: Mit dem gelben U-Boot fünf Entdeckungsorte erforschen.';
 
 const head = [

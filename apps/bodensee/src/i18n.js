@@ -40,6 +40,10 @@ const I18N = (() => {
   function applyDom(root) {
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) translateNode(n);
+    root.querySelectorAll('[placeholder]').forEach((el) => {
+      if (!el.dataset.ph) el.dataset.ph = el.getAttribute('placeholder');
+      el.setAttribute('placeholder', t(el.dataset.ph));
+    });
     root.querySelectorAll('[aria-label]').forEach((el) => {
       if (!labelOf.has(el)) labelOf.set(el, el.getAttribute('aria-label'));
       el.setAttribute('aria-label', t(labelOf.get(el)));
@@ -54,6 +58,7 @@ const I18N = (() => {
       if (core) out.push(core);
     }
     root.querySelectorAll('[aria-label]').forEach((el) => out.push(labelOf.get(el) || el.getAttribute('aria-label')));
+    root.querySelectorAll('[placeholder]').forEach((el) => out.push(el.dataset.ph || el.getAttribute('placeholder')));
     return out;
   }
   function set(code) {

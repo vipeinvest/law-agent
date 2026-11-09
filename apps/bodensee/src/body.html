@@ -75,8 +75,12 @@
   <section id="title" class="screen title-screen" aria-labelledby="titleHead">
     <div class="title-inner">
       <p class="eyebrow">Ein Unterwasser-Abenteuer</p>
-      <h1 id="titleHead"><span class="t-small">Leopolds</span><span class="t-big">Bodensee-Expedition</span></h1>
+      <h1 id="titleHead"><span class="t-small">Die große</span><span class="t-big">Bodensee-Expedition</span></h1>
       <p class="tagline">Tauche mit dem gelben U-Boot hinab, finde die fünf verlorenen Logbuch-Seiten und lerne die Geheimnisse des Sees kennen.</p>
+      <label class="name-pick">
+        <span>Wie heißt du?</span>
+        <input id="playerName" type="text" maxlength="16" autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="go" placeholder="Dein Name (freiwillig)" aria-label="Dein Name (freiwillig)">
+      </label>
       <div class="title-actions">
         <button id="btnContinue" class="btn btn-primary" type="button" hidden>Weiterspielen</button>
         <button id="btnStart" class="btn btn-primary" type="button">Expedition starten</button>
@@ -87,6 +91,7 @@
         <button class="seg" type="button" role="radio" data-control="stick" aria-checked="false">Joystick ziehen</button>
       </div>
       <p class="fine">Keine Werbung · keine Datensammlung · Ton am besten mit Kopfhörern</p>
+      <p class="fine">Dein Name bleibt nur auf diesem Gerät.</p>
     </div>
     <p class="credit">Created by MALELU AI</p>
     <div class="lang-pick lang-corner" role="radiogroup" aria-label="Sprache wählen">
@@ -180,7 +185,7 @@
     <div class="certificate">
       <p class="cert-eyebrow">Seeforschungsstation Bodensee</p>
       <h2 id="endHead">Urkunde</h2>
-      <p class="cert-text">Kapitän <b>Leopold</b> hat alle fünf Logbuch-Seiten auf dem Grund des Bodensees gefunden und ist ab heute</p>
+      <p class="cert-text"><b id="certName">Kapitän</b> <span>hat alle fünf Logbuch-Seiten auf dem Grund des Bodensees gefunden und ist ab heute</span></p>
       <p class="cert-title">Ehren-Seeforscher</p>
       <dl class="cert-stats">
         <div><dt>Entdeckungen</dt><dd id="statSites">5/5</dd></div>
@@ -192,6 +197,7 @@
       <p class="cert-sign"><span id="certDate"></span><span>Prof. Ida Wellenstein</span></p>
       <div class="panel-actions row">
         <button id="btnEndSpeak" class="speak-btn paper" type="button" aria-label="Urkunde vorlesen" aria-pressed="false"><svg class="ico ico-talk" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+        <button id="btnCertShare" class="btn" type="button">Urkunde speichern oder teilen</button>
         <button id="btnRoam" class="btn btn-primary" type="button">Weiter erkunden</button>
         <button id="btnNewGame" class="btn" type="button">Neue Expedition</button>
       </div>

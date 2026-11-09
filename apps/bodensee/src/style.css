@@ -941,6 +941,27 @@ button.log-item { cursor: pointer; }
   .book-grid { max-height: 38vh; }
 }
 
+/* name on the title screen */
+.name-pick { display: grid; justify-items: center; gap: 6px; }
+.name-pick span { font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+.name-pick input {
+  width: min(300px, 80vw);
+  min-height: 48px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(234, 246, 243, 0.35);
+  background: rgba(3, 22, 28, 0.72);
+  color: var(--text);
+  font: 600 1.05rem var(--font-ui);
+  text-align: center;
+}
+.name-pick input::placeholder { color: rgba(234, 246, 243, 0.5); font-weight: 400; }
+.name-pick input:focus { outline: none; border-color: var(--sub); }
+@media (max-height: 460px) {
+  .name-pick span { display: none; }
+  .name-pick input { min-height: 40px; }
+}
+
 /* language switch */
 .lang-pick {
   display: inline-flex;

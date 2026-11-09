@@ -1,6 +1,6 @@
-# Leopolds Bodensee-Expedition
+# Die große Bodensee-Expedition
 
-Ein ruhiges Unterwasser-Forschungsspiel für Leopold: Mit dem gelben U-Boot **LEO 1** taucht man in den Bodensee, findet fünf verlorene Logbuch-Seiten von Professorin Ida Wellenstein und lernt dabei echte Fakten über den See.
+Ein ruhiges Unterwasser-Forschungsspiel für Kinder, ursprünglich für Leopold gebaut: Mit dem gelben U-Boot **LEO 1** taucht man in den Bodensee, findet fünf verlorene Logbuch-Seiten von Professorin Ida Wellenstein und lernt dabei echte Fakten über den See.
 
 - **Ziel-URL:** https://bodensee.malelu.io (MALELU Traefik-VPS, Docker, Cloudflare)
 - **Läuft auf:** iPhone und iPad (Safari, hoch und quer), Android, Desktop – ohne App-Download. Über „Zum Home-Bildschirm“ als Vollbild-App mit Offline-Modus.
@@ -33,6 +33,8 @@ Alle Fundorte sind im Spiel ausdrücklich als **nicht maßstabsgetreu** gekennze
 Alle Aussagen mit Quelle: `FAKTEN.md`. Bei Änderungen am deutschen Text immer die Sprachdateien mitziehen, der deutsche Satz ist der Schlüssel; `tests/smoke.cjs` bricht ab, wenn eine Übersetzung fehlt oder eine Zahl abweicht.
 
 **Sprachen:** Deutsch (Standard), Englisch, Italienisch, Französisch; Umschalter im Titel und in der Pause, direkt per `?lang=en`. Vorlesen nimmt die passende Stimme des Geräts; gibt es keine, bleibt der Lautsprecher-Knopf verborgen.
+
+**Name:** Kinder können am Anfang ihren Namen eintragen, er bleibt nur im Browser. Ein Familienlink wie `?name=Leopold` trägt ihn einmal ein. Am Ende lässt sich die Urkunde als Bild speichern oder über das Teilen-Menü des Geräts verschicken, ohne dass eine Adresse über den Server läuft.
 
 **Vollbild:** beim Start und bei jedem Knopf zurück ins Spiel; Esc oder Android-Zurück verlassen es und pausieren; der Knopf im Pausenmenü verlässt es bis zum nächsten Start. iPhone-Safari kann es nicht, dort hilft „Zum Home-Bildschirm“.
 
