@@ -496,6 +496,16 @@ h1 { margin: 0; display: grid; line-height: 0.95; text-wrap: balance; }
 }
 .seg[aria-checked="true"] { background: var(--lake-lite); color: #02232b; }
 .fine { margin: 0; font-size: 0.74rem; color: rgba(234, 246, 243, 0.62); text-align: center; }
+.credit {
+  position: absolute;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(8px, env(safe-area-inset-bottom));
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.03em;
+  color: rgba(234, 246, 243, 0.62);
+  pointer-events: none;
+}
 
 /* dialog */
 .dialog-screen { place-items: end center; background: linear-gradient(180deg, transparent 40%, rgba(2, 16, 22, 0.7)); }

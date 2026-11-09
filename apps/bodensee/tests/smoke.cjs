@@ -123,6 +123,8 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   const page = await context.newPage();
   // Stand-in speech engine: headless Chromium has no voices, and the checks must see what would be spoken.
   await page.addInitScript(() => {
+    // Fullscreen has its own checks below; here a refusal keeps the page size of the emulated device.
+    Element.prototype.requestFullscreen = () => Promise.reject(new Error('stand-in'));
     window.__spoken = [];
     let current = null;
     window.speechSynthesis.speak = (u) => {
@@ -390,6 +392,114 @@ async function speechFallback(browser, base) {
   await context.close();
 }
 
+// ---------------------------------------------------------------- reading stays in one piece, with the best voice on the device
+async function speechFlow(browser, base) {
+  console.log('\n▶ Vorlesen flüssig');
+  const context = await browser.newContext({ serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.__parts = [];
+    window.speechSynthesis.getVoices = () => [
+      { lang: 'de-AT', name: 'Michael', localService: true },
+      { lang: 'de-DE', name: 'Grandma (Deutsch (Deutschland))', localService: true },
+      { lang: 'de-DE', name: 'Anna (Enhanced)', localService: true },
+      { lang: 'de-DE', name: 'Online (Natural)', localService: false },
+    ];
+    window.speechSynthesis.speak = (u) => window.__parts.push({ text: u.text, voice: u.voice && u.voice.name, rate: u.rate, pitch: u.pitch });
+    window.speechSynthesis.cancel = () => {};
+  });
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  await page.click('#btnStart');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
+  await page.click('#btnDialogSpeak');
+  const parts = () => page.evaluate(() => window.__parts);
+  await clickUntil(page, '#btnDialogNext', async () => (await parts()).some((p) => p.text.includes('Dampfschiff')), 10);
+  const list = await parts();
+  const longest = list.find((p) => p.text.includes('Dampfschiff'));
+  check('a long radio page is one utterance', !!longest && longest.text.startsWith('Jede Seite'), longest && longest.text.slice(0, 40));
+  check('the better on-device voice is chosen', list.every((p) => p.voice === 'Anna (Enhanced)'), list[0] && list[0].voice);
+  check('rate 1 and a friendly pitch', list.every((p) => p.rate === 1 && p.pitch > 1 && p.pitch <= 1.2));
+  await context.close();
+}
+
+// ---------------------------------------------------------------- fullscreen: on start, back after Esc, left on request, never needed
+// Stand-in API: headless Chromium cannot show what a real device does, so these checks cover the logic only.
+async function fullscreenChecks(browser, base) {
+  console.log('\n▶ Vollbild');
+  const context = await browser.newContext({ serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    let el = null;
+    const changed = () => document.dispatchEvent(new Event('fullscreenchange'));
+    window.__fsCalls = 0;
+    Object.defineProperty(document, 'fullscreenEnabled', { get: () => true });
+    Object.defineProperty(document, 'fullscreenElement', { get: () => el });
+    Element.prototype.requestFullscreen = function () {
+      window.__fsCalls++;
+      el = this;
+      changed();
+      return Promise.resolve();
+    };
+    document.exitFullscreen = () => {
+      el = null;
+      changed();
+      return Promise.resolve();
+    };
+    window.__fsLost = () => {
+      el = null;
+      changed();
+    };
+  });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  const calls = () => page.evaluate(() => window.__fsCalls);
+  const label = () => page.textContent('#btnFullscreen');
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('credit line on the title screen', (await page.textContent('.credit')).includes('MALELU AI') && (await page.isVisible('.credit')));
+  await page.click('#btnStart');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
+  check('start asks for fullscreen', (await calls()) === 1);
+  await clickUntil(page, '#btnDialogNext', async () => (await state(page)).mode === 'play', 16);
+  check('still one request after the intro', (await calls()) === 1);
+  await page.evaluate(() => window.__fsLost());
+  await sleep(100);
+  check('leaving fullscreen during play pauses', (await state(page)).mode === 'pause' && (await page.isVisible('#btnFullscreen')) && (await label()) === 'Vollbild einschalten');
+  await page.click('#btnResume');
+  await sleep(100);
+  check('resume returns to fullscreen', (await state(page)).mode === 'play' && (await calls()) === 2);
+  await page.click('#btnPause');
+  await sleep(100);
+  check('fullscreen stays during pause', (await label()) === 'Vollbild beenden');
+  await page.click('#btnFullscreen');
+  await sleep(100);
+  await page.click('#btnResume');
+  await sleep(100);
+  check('left by button: resume stays in the window', (await state(page)).mode === 'play' && (await calls()) === 2);
+  check('no script errors with fullscreen', errors.length === 0, errors.join(' | '));
+  await context.close();
+
+  const without = await browser.newContext({ serviceWorkers: 'block' });
+  const plain = await without.newPage();
+  await plain.addInitScript(() => {
+    delete Element.prototype.requestFullscreen;
+    delete Element.prototype.webkitRequestFullscreen;
+  });
+  const plainErrors = [];
+  plain.on('pageerror', (e) => plainErrors.push(e.message));
+  await plain.goto(base, { waitUntil: 'load' });
+  await waitFor(plain, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  await plain.click('#btnStart');
+  const started = await waitFor(plain, () => window.__bodensee.mode === 'dialog', 5000);
+  check('without fullscreen API (iPhone): game starts, no errors', started && plainErrors.length === 0, plainErrors.join(' | '));
+  await clickUntil(plain, '#btnDialogNext', async () => (await state(plain)).mode === 'play', 16);
+  await plain.click('#btnPause');
+  await sleep(100);
+  check('without fullscreen API: no button in the pause menu', !(await plain.isVisible('#btnFullscreen')));
+  await without.close();
+}
+
 // ---------------------------------------------------------------- remote-only checks
 async function remoteChecks(base) {
   console.log(`\n▶ HTTP checks ${base}`);
@@ -438,6 +548,16 @@ async function remoteChecks(base) {
     await speechFallback(browser, base);
   } catch (e) {
     check('speech fallback run completed', false, e.message.split('\n')[0]);
+  }
+  try {
+    await speechFlow(browser, base);
+  } catch (e) {
+    check('speech flow run completed', false, e.message.split('\n')[0]);
+  }
+  try {
+    await fullscreenChecks(browser, base);
+  } catch (e) {
+    check('fullscreen run completed', false, e.message.split('\n')[0]);
   }
   await browser.close();
   if (server) server.close();

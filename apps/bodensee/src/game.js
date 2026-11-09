@@ -3027,6 +3027,7 @@
   function setMode(m) {
     Reader.stop();
     if (state.mode === 'play' && m !== 'play') releaseInput();
+    if (m === 'play') Fullscreen.resume();
     state.mode = m;
     for (const id of SCREENS) $(id).hidden = id !== m;
     const showHud = m === 'play' || m === 'pause' || m === 'card' || m === 'logbook' || m === 'confirm';
@@ -3042,6 +3043,7 @@
   }
 
   function startExpedition(fromSave) {
+    Fullscreen.start();
     Sound.init();
     Sound.click();
     resetWorld(!fromSave);
@@ -3527,11 +3529,19 @@
       document.documentElement.classList.add('no-speech');
     }
     const langOf = (v) => v.lang.replace('_', '-');
+    // Voice names are all that tells them apart: the better engines first, a friendly female voice for the professor, no joke voices.
+    function voiceScore(v) {
+      const name = v.name || '';
+      return (/premium|enhanced|erweitert|natural|neural/i.test(name) ? 4 : 0)
+        + (/anna|petra|helena|katja|hedda|ingrid|vicki|marlene|amala|kerstin|sonja/i.test(name) ? 2 : 0)
+        + (/^de-AT/i.test(langOf(v)) ? 1 : 0)
+        - (/grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley/i.test(name) ? 8 : 0);
+    }
     function pickVoice() {
       const all = synth.getVoices();
       if (!all.length) return; // the list often arrives later, see voiceschanged
       const de = all.filter((v) => /^de(-|$)/i.test(langOf(v)) && v.localService !== false);
-      voice = de.find((v) => /^de-AT/i.test(langOf(v))) || de.find((v) => /^de-DE/i.test(langOf(v))) || de[0] || null;
+      voice = de.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
       document.documentElement.classList.toggle('no-speech', !voice);
     }
     function init() {
@@ -3542,11 +3552,12 @@
       pickVoice();
       if (synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
     }
+    // Every separate utterance starts after an audible gap, so a text stays in one piece unless it is far longer than any in the game.
     function chunks(text) {
       const spoken = SPOKEN.reduce((t, [from, to]) => t.replace(from, to), text);
       const out = [];
       for (const sentence of spoken.match(/[^.!?]+[.!?]*\s*/g) || [spoken]) {
-        if (out.length && out[out.length - 1].length + sentence.length < 160) out[out.length - 1] += sentence;
+        if (out.length && out[out.length - 1].length + sentence.length < 1500) out[out.length - 1] += sentence;
         else out.push(sentence);
       }
       return out.map((s) => s.trim()).filter(Boolean);
@@ -3581,7 +3592,9 @@
         const u = new Utterance(parts[i]);
         u.lang = voice ? voice.lang : 'de-DE';
         if (voice) u.voice = voice;
-        u.rate = 0.95;
+        // Below rate 1 some engines stretch words and start to stutter; the raised pitch keeps it warm for children.
+        u.rate = 1;
+        u.pitch = 1.1;
         u.onend = () => speakPart(i + 1);
         u.onerror = (e) => {
           if (id !== run) return;
@@ -3841,12 +3854,63 @@
     setMode('confirm');
   }
 
+  // ------------------------------------------------------------------ fullscreen
+  // Browsers only enter it from a tap or key press, so it starts with the expedition and returns with every button back into play.
+  // Esc or the Android back button leave it and pause, nothing runs on unseen. The button in the pause menu leaves it until the next start.
+  // There is deliberately no button during play, where a child could tap out by accident. iPhone Safari has no fullscreen for pages.
+  const Fullscreen = (() => {
+    const root = document.documentElement;
+    const enter = root.requestFullscreen ? () => root.requestFullscreen({ navigationUI: 'hide' }) : root.webkitRequestFullscreen ? () => root.webkitRequestFullscreen() : null;
+    const leave = document.exitFullscreen ? () => document.exitFullscreen() : document.webkitExitFullscreen ? () => document.webkitExitFullscreen() : null;
+    const installed = window.matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches;
+    const supported = !!(enter && leave && (document.fullscreenEnabled || document.webkitFullscreenEnabled) && !installed);
+    let wanted = false;
+    const active = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+    function run(action) {
+      try {
+        const done = action();
+        if (done && done.catch) done.catch(() => {}); // refused: the game simply stays in the window
+      } catch (e) { /* same */ }
+    }
+    function sync() {
+      const btn = $('btnFullscreen');
+      btn.hidden = !supported;
+      btn.textContent = active() ? 'Vollbild beenden' : 'Vollbild einschalten';
+    }
+    function changed() {
+      sync();
+      if (!active() && state.mode === 'play') pauseGame(false);
+    }
+    function resume() {
+      if (supported && wanted && !active()) run(enter);
+    }
+    document.addEventListener('fullscreenchange', changed);
+    document.addEventListener('webkitfullscreenchange', changed);
+    sync();
+    return {
+      resume,
+      start() {
+        wanted = true;
+        resume();
+      },
+      toggle() {
+        wanted = !active();
+        if (wanted) resume();
+        else run(leave);
+      },
+    };
+  })();
+
   function bind(id, fn) {
     $(id).addEventListener('click', (e) => {
       e.preventDefault();
       fn(e);
     });
   }
+  bind('btnFullscreen', () => {
+    Sound.click();
+    Fullscreen.toggle();
+  });
   bind('btnStart', () => startExpedition(false));
   bind('btnContinue', () => {
     const d = loadProgress();
