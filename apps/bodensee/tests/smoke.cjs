@@ -399,6 +399,17 @@ async function speechFlow(browser, base) {
   const page = await context.newPage();
   await page.addInitScript(() => {
     window.__parts = [];
+    // The real SpeechSynthesisUtterance only accepts real SpeechSynthesisVoice objects; with the plain
+    // stand-in voices below, setting u.voice would throw and nothing would be spoken at all.
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) {
+        this.text = text;
+        this.voice = null;
+        this.lang = '';
+        this.rate = 1;
+        this.pitch = 1;
+      }
+    };
     window.speechSynthesis.getVoices = () => [
       { lang: 'de-AT', name: 'Michael', localService: true },
       { lang: 'de-DE', name: 'Grandma (Deutsch (Deutschland))', localService: true },
@@ -418,8 +429,8 @@ async function speechFlow(browser, base) {
   const list = await parts();
   const longest = list.find((p) => p.text.includes('Dampfschiff'));
   check('a long radio page is one utterance', !!longest && longest.text.startsWith('Jede Seite'), longest && longest.text.slice(0, 40));
-  check('the better on-device voice is chosen', list.every((p) => p.voice === 'Anna (Enhanced)'), list[0] && list[0].voice);
-  check('rate 1 and a friendly pitch', list.every((p) => p.rate === 1 && p.pitch > 1 && p.pitch <= 1.2));
+  check('the better on-device voice is chosen', list.length > 0 && list.every((p) => p.voice === 'Anna (Enhanced)'), list[0] && list[0].voice);
+  check('rate 1 and a friendly pitch', list.length > 0 && list.every((p) => p.rate === 1 && p.pitch > 1 && p.pitch <= 1.2));
   await context.close();
 }
 
