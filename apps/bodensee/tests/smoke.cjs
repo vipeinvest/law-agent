@@ -6,7 +6,8 @@
  *
  *   node tests/smoke.cjs --url http://127.0.0.1:8080/ --allow-http   # the built container
  *
- * Options: --shots <dir> (screenshots), --quick (fewer devices), --full (complete play-through on every device)
+ * Options: --only devices,speech,fullscreen,trips,languages (run parts), --timeout <ms> (slow machines),
+ *          --shots <dir> (screenshots), --quick (fewer devices), --full (complete play-through on every device)
  * Exit code 0 = all checks passed.
  */
 const http = require('http');
@@ -688,6 +689,15 @@ async function remoteChecks(base) {
     await remoteChecks(base);
   }
   const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {});
+  const parts = opt('--only', 'devices,speech,fullscreen,trips,languages').split(',');
+  const timeout = Number(opt('--timeout', 30000));
+  const plainContext = browser.newContext.bind(browser);
+  browser.newContext = async (o) => {
+    const c = await plainContext(o);
+    c.setDefaultTimeout(timeout);
+    c.setDefaultNavigationTimeout(timeout);
+    return c;
+  };
   const runs = [
     ['iPhone 13 hochkant', devices['iPhone 13']],
     ['iPhone 13 quer', devices['iPhone 13 landscape']],
@@ -695,7 +705,8 @@ async function remoteChecks(base) {
     ['iPad quer', devices['iPad (gen 7) landscape']],
     ['Desktop', { viewport: { width: 1280, height: 800 }, hasTouch: true, deviceScaleFactor: 1 }],
   ];
-  const list = has('--quick') ? [runs[0], runs[2]] : runs;
+  const all = has('--quick') ? [runs[0], runs[2]] : runs;
+  const list = parts.includes('devices') ? all : [];
   for (const [label, ctx] of list) {
     try {
       await runDevice(browser, base, label, ctx, has('--full') || label === 'iPad quer' || label === 'iPhone 13 quer');
@@ -703,27 +714,27 @@ async function remoteChecks(base) {
       check(`${label}: run completed`, false, e.message.split('\n').slice(0, 3).join(' '));
     }
   }
-  try {
+  if (parts.includes('speech')) try {
     await speechFallback(browser, base);
   } catch (e) {
     check('speech fallback run completed', false, e.message.split('\n')[0]);
   }
-  try {
+  if (parts.includes('speech')) try {
     await speechFlow(browser, base);
   } catch (e) {
     check('speech flow run completed', false, e.message.split('\n')[0]);
   }
-  try {
+  if (parts.includes('fullscreen')) try {
     await fullscreenChecks(browser, base);
   } catch (e) {
     check('fullscreen run completed', false, e.message.split('\n')[0]);
   }
-  try {
+  if (parts.includes('trips')) try {
     await tripChecks(browser, base);
   } catch (e) {
     check('trip run completed', false, e.message.split('\n')[0]);
   }
-  try {
+  if (parts.includes('languages')) try {
     await languageChecks(browser, base);
   } catch (e) {
     check('language run completed', false, e.message.split('\n')[0]);
