@@ -620,7 +620,8 @@ function literalKeys() {
     for (const m of s.matchAll(/(?:\b_t|\b_tf|\bsay|\.toast|\btoast)\(([^\n]*)/g)) {
       for (const q of m[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)) {
         const v = q[1].replace(/\\'/g, "'");
-        if (/[A-Za-zÄÖÜäöü]{3}/.test(v) && !/^([a-z]+|#.*|[a-z]+[A-Z]\w*)$/.test(v)) out.add(v);
+        // The rest of the line can hold other arguments too, such as a colour value next to _t('Bodensee').
+        if (/[A-Za-zÄÖÜäöü]{3}/.test(v) && !/^([a-z]+|#.*|[a-z]+[A-Z]\w*|(?:rgba?|hsla?)\(.*\))$/.test(v)) out.add(v);
       }
     }
     for (const m of s.matchAll(/label: '((?:[^'\\]|\\.)*)'/g)) out.add(m[1]);
