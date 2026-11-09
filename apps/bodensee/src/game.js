@@ -2516,8 +2516,10 @@
   }
 
   let cardFromPlay = false;
+  let cardSpeech = '';
   function openCard(s, fresh) {
     cardFromPlay = fresh;
+    cardSpeech = `${s.title}. ${s.facts.join(' ')}`;
     const n = state.found.indexOf(s.id) + 1;
     $('cardEyebrow').textContent = `Logbuch-Seite ${n} von ${SITES.length} · ${s.depthLabel}`;
     $('cardTitle').textContent = s.title;
@@ -2592,8 +2594,10 @@
       radio.shown = Math.min(radio.cur.text.length, radio.shown + dt * 48);
       if (Math.floor(radio.shown) !== before) $('radioText').textContent = radio.cur.text.slice(0, Math.floor(radio.shown));
       if (radio.shown >= radio.cur.text.length) {
-        radio.hold -= dt;
+        const reading = Reader.isActive($('btnRadioSpeak'));
+        if (!reading) radio.hold -= dt;
         if (radio.hold <= 0) {
+          if (reading) Reader.stop();
           radio.cur = null;
           el.hidden = true;
         }
@@ -2610,6 +2614,7 @@
     }
   }
   function clearRadio() {
+    if (Reader.isActive($('btnRadioSpeak'))) Reader.stop();
     radio.queue.length = 0;
     radio.cur = null;
     $('radio').hidden = true;
@@ -2627,8 +2632,12 @@
     'Pfahlbauten, Felchen, Anker, Wels und die Jura: Du kennst jetzt die Geheimnisse des Bodensees besser als viele Erwachsene.',
     'Dafür bekommst du von der Seeforschungsstation eine echte Urkunde. Herzlichen Glückwunsch!',
   ];
-  const dialog = { lines: [], i: 0, shown: 0, done: null };
+  const dialog = { lines: [], i: 0, shown: 0, done: null, read: false };
+  function readDialog() {
+    Reader.speak(dialog.lines[dialog.i], $('btnDialogSpeak'));
+  }
   function runDialog(lines, done) {
+    dialog.read = false;
     dialog.lines = lines;
     dialog.i = 0;
     dialog.shown = 0;
@@ -2665,6 +2674,7 @@
       $('dialogText').textContent = '';
       Sound.radio();
       updateDialogStep();
+      if (dialog.read) readDialog();
       return;
     }
     const done = dialog.done;
@@ -2988,6 +2998,15 @@
       b.textContent = seen ? SPECIES[key].name : '???';
       const sm = document.createElement('small');
       sm.textContent = seen ? SPECIES[key].fact : 'Noch nicht entdeckt. Schwimm nah an Fische heran!';
+      if (seen) {
+        const speakBtn = $('btnCardSpeak').cloneNode(true);
+        speakBtn.removeAttribute('id');
+        speakBtn.classList.add('fish-speak');
+        speakBtn.setAttribute('aria-label', `${SPECIES[key].name} vorlesen`);
+        speakBtn.setAttribute('aria-pressed', 'false');
+        speakBtn.addEventListener('click', () => Reader.toggle(`${SPECIES[key].name}. ${SPECIES[key].fact}`, speakBtn));
+        el.appendChild(speakBtn);
+      }
       el.append(b, sm);
       fish.appendChild(el);
     }
@@ -2995,6 +3014,7 @@
     $('tabFishCount').textContent = `${state.seen.size}/${FISH_ORDER.length}`;
   }
   function selectTab(which) {
+    Reader.stop();
     const fish = which === 'fish';
     $('tabSites').setAttribute('aria-selected', String(!fish));
     $('tabFish').setAttribute('aria-selected', String(fish));
@@ -3005,6 +3025,7 @@
   // ------------------------------------------------------------------ modes
   const SCREENS = ['title', 'dialog', 'pause', 'card', 'logbook', 'ending', 'confirm'];
   function setMode(m) {
+    Reader.stop();
     if (state.mode === 'play' && m !== 'play') releaseInput();
     state.mode = m;
     for (const id of SCREENS) $(id).hidden = id !== m;
@@ -3458,9 +3479,14 @@
       scanOsc.frequency.setTargetAtTime(330 + p * 520, t, 0.05);
     }
 
+    let ducked = false;
     function setMuted(m) {
       if (!ac) return;
-      master.gain.setTargetAtTime(m ? 0 : 0.9, ac.currentTime, 0.05);
+      master.gain.setTargetAtTime(m ? 0 : ducked ? 0.25 : 0.9, ac.currentTime, 0.05);
+    }
+    function duck(on) {
+      ducked = on;
+      setMuted(state.muted);
     }
 
     function setPlaying(p) {
@@ -3476,8 +3502,113 @@
       if (ac && ac.state === 'running') ac.suspend().catch(() => {});
     }
 
-    return { init, resume, engine, ping, bubble, bloop, radio, discover, fanfare, click, scan, setMuted, setPlaying, suspend, get ready() { return !!ac; } };
+    return { init, resume, engine, ping, bubble, bloop, radio, discover, fanfare, click, scan, setMuted, duck, setPlaying, suspend, get ready() { return !!ac; } };
   })();
+
+  // ------------------------------------------------------------------ read aloud
+  // Web Speech API with on-device voices only: no audio files, and no game text leaves the device.
+  const Reader = (() => {
+    const synth = window.speechSynthesis;
+    const Utterance = window.SpeechSynthesisUtterance;
+    const FATAL = ['synthesis-unavailable', 'language-unavailable', 'voice-unavailable'];
+    const SPOKEN = [
+      [/\bLEO 1\b/g, 'Leo Eins'],
+      [/\bca\.\s*/g, 'circa '],
+      [/(\d)\s?m\b/g, '$1 Meter'],
+      [/\s[–—]\s/g, ', '],
+    ];
+    let voice = null;
+    let activeBtn = null;
+    let run = 0;
+    let watchdog = 0;
+    let keep = null; // Safari loses utterances without a reference and then never fires onend
+
+    function disable() {
+      document.documentElement.classList.add('no-speech');
+    }
+    const langOf = (v) => v.lang.replace('_', '-');
+    function pickVoice() {
+      const all = synth.getVoices();
+      if (!all.length) return; // the list often arrives later, see voiceschanged
+      const de = all.filter((v) => /^de(-|$)/i.test(langOf(v)) && v.localService !== false);
+      voice = de.find((v) => /^de-AT/i.test(langOf(v))) || de.find((v) => /^de-DE/i.test(langOf(v))) || de[0] || null;
+      document.documentElement.classList.toggle('no-speech', !voice);
+    }
+    function init() {
+      if (!synth || !Utterance) {
+        disable();
+        return;
+      }
+      pickVoice();
+      if (synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
+    }
+    function chunks(text) {
+      const spoken = SPOKEN.reduce((t, [from, to]) => t.replace(from, to), text);
+      const out = [];
+      for (const sentence of spoken.match(/[^.!?]+[.!?]*\s*/g) || [spoken]) {
+        if (out.length && out[out.length - 1].length + sentence.length < 160) out[out.length - 1] += sentence;
+        else out.push(sentence);
+      }
+      return out.map((s) => s.trim()).filter(Boolean);
+    }
+    function release() {
+      clearTimeout(watchdog);
+      if (activeBtn) activeBtn.setAttribute('aria-pressed', 'false');
+      activeBtn = null;
+      Sound.duck(false);
+    }
+    function stop() {
+      run++;
+      if (!activeBtn) return;
+      synth.cancel();
+      release();
+    }
+    function speak(text, btn) {
+      if (!synth || !Utterance) return;
+      stop();
+      const id = run;
+      const parts = chunks(text);
+      activeBtn = btn;
+      btn.setAttribute('aria-pressed', 'true');
+      Sound.duck(true);
+      if (synth.paused) synth.resume();
+      const speakPart = (i) => {
+        if (id !== run) return;
+        if (i >= parts.length) {
+          release();
+          return;
+        }
+        const u = new Utterance(parts[i]);
+        u.lang = voice ? voice.lang : 'de-DE';
+        if (voice) u.voice = voice;
+        u.rate = 0.95;
+        u.onend = () => speakPart(i + 1);
+        u.onerror = (e) => {
+          if (id !== run) return;
+          if (FATAL.includes(e.error)) disable();
+          release();
+        };
+        keep = u;
+        clearTimeout(watchdog);
+        // Some browsers drop onend, for example after the page was in the background.
+        watchdog = setTimeout(() => {
+          if (id === run) stop();
+        }, 5000 + parts[i].length * 150);
+        synth.speak(u);
+      };
+      speakPart(0);
+    }
+    function toggle(text, btn) {
+      if (activeBtn === btn) {
+        stop();
+        return false;
+      }
+      speak(text, btn);
+      return true;
+    }
+    return { init, speak, toggle, stop, isActive: (btn) => activeBtn === btn };
+  })();
+  Reader.init();
 
   // ------------------------------------------------------------------ avatar
   function drawAvatar(cv) {
@@ -3729,6 +3860,18 @@
     startExpedition(true);
   });
   bind('btnDialogNext', dialogNext);
+  bind('btnDialogSpeak', () => {
+    dialog.read = Reader.toggle(dialog.lines[dialog.i], $('btnDialogSpeak'));
+  });
+  bind('btnCardSpeak', () => Reader.toggle(cardSpeech, $('btnCardSpeak')));
+  bind('btnEndSpeak', () => {
+    const text = `${document.querySelector('.cert-text').textContent} ${document.querySelector('.cert-title').textContent}.`;
+    Reader.toggle(text, $('btnEndSpeak'));
+  });
+  $('btnRadioSpeak').addEventListener('click', (e) => {
+    e.stopPropagation(); // a tap on the bubble itself skips the message
+    if (radio.cur) Reader.toggle(radio.cur.text, $('btnRadioSpeak'));
+  });
   bind('btnPause', () => pauseGame(false));
   bind('btnResume', resumeGame);
   bind('btnRestart', () => openConfirm('pause'));
@@ -3752,6 +3895,7 @@
     state.muted = !state.muted;
     Sound.init();
     Sound.setMuted(state.muted);
+    if (state.muted) Reader.stop();
     const b = $('btnSound');
     b.setAttribute('aria-pressed', String(!state.muted));
     b.setAttribute('aria-label', state.muted ? 'Ton einschalten' : 'Ton ausschalten');
@@ -3779,6 +3923,7 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
+      Reader.stop();
       if (state.mode === 'play') pauseGame(true);
       saveProgress();
       Sound.suspend();
@@ -3883,6 +4028,8 @@
     get sites() { return SITES.map((s) => ({ id: s.id, x: s.x, y: s.y, r: s.r })); },
     teleport(x, y) { sub.x = x; sub.y = y; sub.vx = 0; sub.vy = 0; updateCamera(0, true); },
     worldToScreen(x, y) { const v = mainView(); return { x: sxOf(v, x), y: syOf(v, y) }; },
+    say,
+    see(key) { state.seen.add(key || FISH_ORDER[0]); },
   };
 
   boot();

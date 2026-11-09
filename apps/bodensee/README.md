@@ -4,7 +4,7 @@ Ein ruhiges Unterwasser-Forschungsspiel für Leopold: Mit dem gelben U-Boot **LE
 
 - **Ziel-URL:** https://bodensee.malelu.io (MALELU Traefik-VPS, Docker, Cloudflare)
 - **Läuft auf:** iPhone und iPad (Safari, hoch und quer), Android, Desktop – ohne App-Download. Über „Zum Home-Bildschirm“ als Vollbild-App mit Offline-Modus.
-- **Datenschutz:** keine Tracker, keine Drittanbieter-Requests, keine personenbezogenen Daten. Gespeichert wird nur der Spielstand lokal im Browser (`localStorage`).
+- **Datenschutz:** keine Tracker, keine Drittanbieter-Requests, keine personenbezogenen Daten. Gespeichert wird nur der Spielstand lokal im Browser (`localStorage`). Das Vorlesen nutzt nur Stimmen auf dem Gerät; ohne deutsche Gerätestimme bleibt der Lautsprecher-Knopf ausgeblendet.
 
 ## Spielinhalt
 
@@ -39,7 +39,7 @@ tests/smoke.cjs                              Playwright-Smoke-Test (iPhone, iPad
 ```bash
 cd apps/bodensee
 node build.mjs                         # baut public/ und dist/artifact.html
-node tests/smoke.cjs --dir public      # 92 Checks auf 5 Geräteprofilen, Screenshots in tests/screenshots/
+node tests/smoke.cjs --dir public      # Checks auf 5 Geräteprofilen, Screenshots in tests/screenshots/
 python3 -m http.server -d public 8000  # zum Ausprobieren
 ```
 
@@ -51,7 +51,7 @@ Der Workflow startet bei jedem Push auf `main` (oder den Feature-Branch), der `a
 
 1. **test** – Build, Smoke-Test, Docker-Image bauen und read-only starten, Smoke-Test gegen den Container.
 2. **deploy** – kopiert das Release nach `/opt/bodensee/releases/<sha>` und führt `ops/deploy.sh` aus. Braucht die Secrets `BODENSEE_VPS_HOST`, `BODENSEE_VPS_USER`, `BODENSEE_VPS_PORT` und `BODENSEE_VPS_SSH_KEY`, sonst die gemeinsamen `VPS_*`. Fehlen sie, wird der Schritt mit einem Hinweis übersprungen.
-3. **dns** – optional mit `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`: legt den Cloudflare-A-Record `bodensee` (proxied) auf die VPS-IP an, falls er noch fehlt. Bestehende Einträge werden nie geändert.
+3. **dns** – optional mit `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ZONE_ID`: legt den Cloudflare-A-Record `bodensee` (DNS only) auf die VPS-IP an, falls er noch fehlt. Bestehende Einträge werden nie geändert.
 4. **verify** – wartet auf `https://bodensee.malelu.io/health` und führt den Smoke-Test gegen die öffentliche URL aus.
 
 ### Manuell auf dem VPS (eine Zeile)
@@ -65,7 +65,7 @@ cd /opt/bodensee/src && git pull && bash apps/bodensee/ops/deploy.sh
 
 `deploy.sh` erkennt das Traefik-Netz (`traefik-proxy` oder `traefik`) und bricht ohne Änderungen ab, wenn keines existiert. Es baut `bodensee:<tag>`, startet den Container `bodensee-web` (Compose-Projekt `bodensee`, keine offenen Ports) und prüft den Container-Health-Check und die Traefik-Route über `127.0.0.1:443`. Schlägt etwas fehl, läuft automatisch wieder das vorherige Release, oder der neue Container wird entfernt. Andere Dienste werden nicht angefasst.
 
-**DNS (einmalig, falls nicht per Workflow):** Cloudflare → `malelu.io` → DNS → `A  bodensee  <VPS-IP>`, Proxy an (orange), wie bei `businessone.malelu.io`.
+**DNS (einmalig, falls nicht per Workflow):** Cloudflare → `malelu.io` → DNS → `A  bodensee  <VPS-IP>`, DNS only (grau), wie bei `businessone.malelu.io`: Das Zertifikat holt Traefik per HTTP-Prüfung von Let's Encrypt. Live: GastroMarge-VPS `152.239.116.184` (hat das Netz `traefik-proxy`).
 
 Variablen bei abweichender Traefik-Konfiguration: `TRAEFIK_NETWORK`, `TRAEFIK_ENTRYPOINT` (Standard `websecure`), `TRAEFIK_CERTRESOLVER` (Standard `letsencrypt`), `BODENSEE_HOST`.
 

@@ -51,6 +51,7 @@
         <b class="radio-who">Funk · Prof. Ida Wellenstein</b>
         <p id="radioText" aria-live="polite"></p>
       </div>
+      <button id="btnRadioSpeak" class="speak-btn" type="button" aria-label="Funkspruch vorlesen" aria-pressed="false"><svg class="ico ico-talk" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
     </div>
 
     <div id="pingHint" class="ping-hint" hidden>
@@ -94,7 +95,10 @@
         <p id="dialogText"></p>
         <div class="dialog-foot">
           <span id="dialogStep" class="dialog-step"></span>
-          <button id="btnDialogNext" class="btn btn-primary small" type="button">Weiter</button>
+          <span class="dialog-actions">
+            <button id="btnDialogSpeak" class="speak-btn" type="button" aria-label="Funkspruch vorlesen" aria-pressed="false"><svg class="ico ico-talk" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+            <button id="btnDialogNext" class="btn btn-primary small" type="button">Weiter</button>
+          </span>
         </div>
       </div>
     </div>
@@ -123,7 +127,10 @@
   <section id="card" class="screen card-screen" hidden aria-labelledby="cardTitle">
     <article class="card">
       <p class="card-eyebrow" id="cardEyebrow">Logbuch-Seite 1 von 5</p>
-      <h2 id="cardTitle">Titel</h2>
+      <div class="card-head">
+        <h2 id="cardTitle">Titel</h2>
+        <button id="btnCardSpeak" class="speak-btn paper" type="button" aria-label="Logbuch-Seite vorlesen" aria-pressed="false"><svg class="ico ico-talk" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
+      </div>
       <canvas id="cardArt" class="card-art" width="960" height="540" aria-hidden="true"></canvas>
       <ul id="cardFacts" class="card-facts"></ul>
       <p class="card-note">Fundort im Spiel nicht maßstabsgetreu.</p>
@@ -165,6 +172,7 @@
       </dl>
       <p class="cert-sign"><span id="certDate"></span><span>Prof. Ida Wellenstein</span></p>
       <div class="panel-actions row">
+        <button id="btnEndSpeak" class="speak-btn paper" type="button" aria-label="Urkunde vorlesen" aria-pressed="false"><svg class="ico ico-talk" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="stroke" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><svg class="ico ico-stop" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button>
         <button id="btnRoam" class="btn btn-primary" type="button">Weiter erkunden</button>
         <button id="btnNewGame" class="btn" type="button">Neue Expedition</button>
       </div>

@@ -290,7 +290,7 @@ button:focus-visible { outline: 3px solid var(--sonar); outline-offset: 3px; }
 @keyframes radioIn { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .avatar { width: 48px; height: 48px; border-radius: 50%; flex: none; border: 2px solid var(--brass); background: #0b3a44; }
 .avatar.big { width: 80px; height: 80px; }
-.radio-body { min-width: 0; }
+.radio-body { min-width: 0; flex: 1; }
 .radio-who {
   display: block;
   font-size: 0.66rem;
@@ -514,7 +514,39 @@ h1 { margin: 0; display: grid; line-height: 0.95; text-wrap: balance; }
 .dialog-body { min-width: 0; flex: 1; display: grid; gap: 6px; }
 .dialog-body p { margin: 0; font-size: var(--s1); line-height: 1.45; min-height: 4.2em; }
 .dialog-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.dialog-actions { display: flex; align-items: center; gap: 10px; }
 .dialog-step { font-size: 0.72rem; letter-spacing: 0.14em; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* read aloud */
+.speak-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid var(--brass);
+  background: radial-gradient(circle at 35% 30%, #1b5f6b, #062a33 70%);
+  display: grid;
+  place-items: center;
+  padding: 0;
+  cursor: pointer;
+  align-self: center;
+}
+.speak-btn:active { transform: scale(0.94); }
+.speak-btn .ico-stop { display: none; }
+.speak-btn[aria-pressed="true"] .ico-talk { display: none; }
+.speak-btn[aria-pressed="true"] .ico-stop { display: block; }
+.speak-btn[aria-pressed="true"] { animation: speakPulse 1.4s ease-in-out infinite; }
+@keyframes speakPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(209, 171, 98, 0.7); }
+  50% { box-shadow: 0 0 0 7px rgba(209, 171, 98, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .speak-btn[aria-pressed="true"] { animation: none; box-shadow: 0 0 0 3px var(--brass); }
+}
+.speak-btn.paper { border-color: var(--brass-dark); background: #fffaf0; }
+.speak-btn.paper .ico { fill: var(--ink); }
+.speak-btn.paper .ico .stroke { stroke: var(--ink); }
+.no-speech .speak-btn { display: none; }
 
 /* panels */
 .panel-screen { background: rgba(2, 16, 22, 0.62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
@@ -567,6 +599,7 @@ h1 { margin: 0; display: grid; line-height: 0.95; text-wrap: balance; }
   gap: 12px;
 }
 .log-item {
+  position: relative;
   display: grid;
   gap: 6px;
   align-content: start;
@@ -579,6 +612,7 @@ h1 { margin: 0; display: grid; line-height: 0.95; text-wrap: balance; }
   min-width: 0;
 }
 button.log-item { cursor: pointer; }
+.log-item .fish-speak { position: absolute; top: 4px; right: 4px; }
 .log-item.found { border-style: solid; background: #fffaf0; box-shadow: 0 3px 10px rgba(80, 60, 20, 0.15); }
 .log-item img, .log-item canvas { width: 100%; aspect-ratio: 16 / 10; border-radius: 6px; background: #0d4652; display: block; max-width: 100%; }
 .log-item .unknown {
@@ -627,6 +661,7 @@ button.log-item { cursor: pointer; }
   line-height: 1.1;
   text-wrap: balance;
 }
+.card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .card-art {
   width: 100%;
   max-width: 100%;

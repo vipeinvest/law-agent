@@ -121,6 +121,25 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   console.log(`\n▶ ${label}`);
   const context = await browser.newContext({ ...ctxOpts, serviceWorkers: 'block' });
   const page = await context.newPage();
+  // Stand-in speech engine: headless Chromium has no voices, and the checks must see what would be spoken.
+  await page.addInitScript(() => {
+    window.__spoken = [];
+    let current = null;
+    window.speechSynthesis.speak = (u) => {
+      window.__spoken.push(u.text);
+      current = u;
+    };
+    window.speechSynthesis.cancel = () => { current = null; };
+    // A part stays "spoken" until the check ends it, so slow machines cannot change the outcome.
+    window.__speechEnd = () => {
+      const u = current;
+      current = null;
+      if (u && u.onend) u.onend({});
+      return !!u;
+    };
+  });
+  const spoken = () => page.evaluate(() => window.__spoken.join(' '));
+  const pressed = (sel) => page.getAttribute(sel, 'aria-pressed');
   const errors = [];
   const foreign = [];
   const origin = new URL(base).origin;
@@ -146,6 +165,25 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
   await sleep(300);
   await page.screenshot({ path: path.join(shotsDir, `${tag}-2-intro.png`) });
+
+  // read aloud: intro message, next page follows, second tap stops
+  const silentStart = (await spoken()) === '';
+  await page.click('#btnDialogSpeak');
+  const introSpoken = await spoken();
+  check(`${label}: speaker button reads the radio message aloud`, silentStart && introSpoken.includes('Leo Eins') && !introSpoken.includes('LEO 1') && (await pressed('#btnDialogSpeak')) === 'true', introSpoken.slice(0, 50));
+  await page.screenshot({ path: path.join(shotsDir, `${tag}-2b-intro-reading.png`) });
+  await page.evaluate(() => window.__speechEnd());
+  check(`${label}: button returns to rest when the text is finished`, (await pressed('#btnDialogSpeak')) === 'false');
+  await clickUntil(page, '#btnDialogNext', async () => (await spoken()).includes('Sturm'), 6);
+  check(`${label}: next radio page is read on`, (await spoken()).includes('Sturm') && (await pressed('#btnDialogSpeak')) === 'true');
+  await page.click('#btnDialogSpeak');
+  const stoppedAt = await spoken();
+  const stoppedPressed = await pressed('#btnDialogSpeak');
+  await page.click('#btnDialogNext');
+  await sleep(100);
+  await page.click('#btnDialogNext');
+  await sleep(100);
+  check(`${label}: second tap stops reading and the next page stays silent`, stoppedPressed === 'false' && (await spoken()) === stoppedAt);
   const reachedPlay = await clickUntil(page, '#btnDialogNext', async () => (await state(page)).mode === 'play', 14);
   check(`${label}: intro dialog leads into the game`, reachedPlay);
   await sleep(500);
@@ -242,12 +280,44 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   check(`${label}: approaching a logbook page opens the discovery card`, afterFind.mode === 'card' && afterFind.found.length === 1, `mode=${afterFind.mode} found=${afterFind.found.length}`);
   await sleep(700);
   await page.screenshot({ path: path.join(shotsDir, `${tag}-5-card.png`) });
+  const title = await page.textContent('#cardTitle');
+  await page.click('#btnCardSpeak');
+  const cardSpoken = await spoken();
+  const cardPressed = await pressed('#btnCardSpeak');
+  check(`${label}: logbook page is read aloud with its title and facts`, cardSpoken.includes(title) && cardPressed === 'true', title);
   const cardFits = await page.evaluate(() => {
     const r = document.querySelector('#card .card').getBoundingClientRect();
     return r.left >= -1 && r.right <= window.innerWidth + 1;
   });
   check(`${label}: discovery card fits the screen width`, cardFits);
   await page.click('#btnCardClose');
+  check(`${label}: closing the page stops reading`, (await pressed('#btnCardSpeak')) === 'false');
+
+  // read aloud: radio bubble in the game; the tap must not skip the message
+  await page.evaluate(() => window.__bodensee.say('Prüfung des Vorlesens im Funk.'));
+  await waitFor(page, () => !document.getElementById('radio').hidden, 12000);
+  const radioBox = await page.evaluate(() => {
+    const r = document.getElementById('btnRadioSpeak').getBoundingClientRect();
+    return { x: r.left, r: r.right, w: r.width, h: r.height };
+  });
+  check(`${label}: radio speaker button on screen and ≥ 44 px`, radioBox.x >= 0 && radioBox.r <= vp.width + 0.5 && Math.min(radioBox.w, radioBox.h) >= 44);
+  const beforeRadio = (await spoken()).length;
+  await page.click('#btnRadioSpeak');
+  await sleep(150);
+  await page.screenshot({ path: path.join(shotsDir, `${tag}-5b-radio.png`) });
+  check(`${label}: radio bubble is read aloud and stays open`, (await spoken()).length > beforeRadio && await page.isVisible('#radio'));
+  await page.click('#btnRadioSpeak');
+
+  // read aloud: fish book
+  await page.evaluate(() => window.__bodensee.see());
+  await page.click('#btnLog');
+  await page.click('#tabFish');
+  const beforeFish = (await spoken()).length;
+  await page.click('#logFish .speak-btn');
+  const fishText = (await spoken()).slice(beforeFish);
+  await page.screenshot({ path: path.join(shotsDir, `${tag}-5c-fish.png`) });
+  check(`${label}: fish book entry is read aloud`, fishText.length > 20, fishText.slice(0, 50));
+  await page.click('#btnLogClose');
 
   if (full) {
     for (const s of sites.slice(1)) {
@@ -259,6 +329,9 @@ async function runDevice(browser, base, label, ctxOpts, full) {
     }
     const finale = await clickUntil(page, '#btnDialogNext', async () => (await state(page)).mode === 'ending', 12);
     check(`${label}: all five discoveries lead to the certificate`, finale);
+    await page.click('#btnEndSpeak');
+    check(`${label}: certificate is read aloud`, (await spoken()).includes('Ehren-Seeforscher'));
+    await page.click('#btnEndSpeak');
     await sleep(800);
     await page.screenshot({ path: path.join(shotsDir, `${tag}-7-certificate.png`) });
     await page.click('#btnRoam');
@@ -282,6 +355,38 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   await sleep(400);
   check(`${label}: no JavaScript errors`, errors.length === 0, errors.slice(0, 3).join(' | '));
   check(`${label}: no third-party requests`, foreign.length === 0, foreign.slice(0, 3).join(', '));
+  await context.close();
+}
+
+// ---------------------------------------------------------------- read aloud is hidden when it cannot stay on the device
+async function speechFallback(browser, base) {
+  console.log('\n▶ Vorlesen ohne Gerätestimme');
+  const cases = [
+    ['no speech engine', () => Object.defineProperty(window, 'speechSynthesis', { value: undefined })],
+    ['German network voice only', () => { window.speechSynthesis.getVoices = () => [{ lang: 'de-DE', name: 'Netz', localService: false }]; }],
+    ['English voice only', () => { window.speechSynthesis.getVoices = () => [{ lang: 'en-US', name: 'Local', localService: true }]; }],
+  ];
+  for (const [name, setup] of cases) {
+    const context = await browser.newContext({ serviceWorkers: 'block' });
+    const page = await context.newPage();
+    await page.addInitScript(setup);
+    await page.goto(base, { waitUntil: 'load' });
+    await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+    await page.click('#btnStart');
+    await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
+    check(`${name}: speaker button hidden`, !(await page.isVisible('#btnDialogSpeak')));
+    await context.close();
+  }
+  const context = await browser.newContext({ serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    window.speechSynthesis.getVoices = () => [{ lang: 'de_DE', name: 'Lokal', localService: true }];
+  });
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  await page.click('#btnStart');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
+  check('German on-device voice: speaker button shown', await page.isVisible('#btnDialogSpeak'));
   await context.close();
 }
 
@@ -326,8 +431,13 @@ async function remoteChecks(base) {
     try {
       await runDevice(browser, base, label, ctx, has('--full') || label === 'iPad quer' || label === 'iPhone 13 quer');
     } catch (e) {
-      check(`${label}: run completed`, false, e.message.split('\n')[0]);
+      check(`${label}: run completed`, false, e.message.split('\n').slice(0, 3).join(' '));
     }
+  }
+  try {
+    await speechFallback(browser, base);
+  } catch (e) {
+    check('speech fallback run completed', false, e.message.split('\n')[0]);
   }
   await browser.close();
   if (server) server.close();
