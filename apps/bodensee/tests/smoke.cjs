@@ -511,6 +511,153 @@ async function fullscreenChecks(browser, base) {
   await without.close();
 }
 
+// ---------------------------------------------------------------- trips: map, shore path, time travel, fossil dig
+async function tripChecks(browser, base) {
+  console.log('\n▶ Ausflüge');
+  const context = await browser.newContext({ viewport: { width: 1024, height: 700 }, serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => { Element.prototype.requestFullscreen = () => Promise.reject(new Error('stand-in')); });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  const gaps = await page.evaluate(() => {
+    const BE = window.__bodensee.ext;
+    const out = [];
+    for (const stop of BE.shore) {
+      if (!BE.places.find((p) => p.id === stop.place)) out.push(`place ${stop.place}`);
+      for (const id of stop.spots) {
+        const it = BE.item(id);
+        if (!it) { out.push(`item ${id}`); continue; }
+        if (it.draw && !BE.landmarks[it.draw] && !BE.miniDraw[it.draw]) out.push(`draw ${it.draw}`);
+        if (it.critter && !BE.critters[it.critter]) out.push(`critter ${it.critter}`);
+      }
+    }
+    for (const e of BE.eras) {
+      if (!BE.eraArt[e.id]) { out.push(`era ${e.id}`); continue; }
+      for (const key of Object.keys(e.creatures)) if (!BE.eraArt[e.id].creatures[key]) out.push(`creature ${e.id}.${key}`);
+    }
+    return out;
+  });
+  check('every spot, place, era and creature has its data and drawing', gaps.length === 0, gaps.join(', '));
+  const paintErrors = await page.evaluate(() => {
+    const BE = window.__bodensee.ext;
+    const cv = document.createElement('canvas');
+    cv.width = 640;
+    cv.height = 400;
+    const c = cv.getContext('2d');
+    const out = [];
+    const tryDraw = (name, fn) => { try { c.save(); fn(); c.restore(); } catch (e) { out.push(`${name}: ${e.message}`); } };
+    for (const [k, fn] of [...Object.entries(BE.landmarks), ...Object.entries(BE.critters), ...Object.entries(BE.miniDraw)]) tryDraw(k, () => fn(c, 1.5));
+    for (const [k, era] of Object.entries(BE.eraArt)) {
+      tryDraw(k, () => era.back(c, 640, 400, 1.5));
+      for (const [id, d] of Object.entries(era.creatures)) tryDraw(`${k}.${id}`, () => d.draw(c, 1.5, 2));
+    }
+    return out;
+  });
+  check('all drawings paint without errors', paintErrors.length === 0, paintErrors.slice(0, 4).join(' | '));
+  await page.click('#btnStart');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 5000);
+  await clickUntil(page, '#btnDialogNext', async () => (await state(page)).mode === 'play', 16);
+  await page.click('#btnMap');
+  check('map button opens the trips', (await state(page)).mode === 'ausflug' && (await page.isVisible('#extCanvas')) && !(await page.isVisible('#hud')));
+  await page.click('.ext-nav button[data-view="ufer"]');
+  await sleep(200);
+  const x0 = await page.evaluate(() => window.__bodensee.ext.views.ufer.debug.x);
+  await page.mouse.move(900, 450);
+  await page.mouse.down();
+  await sleep(1500);
+  await page.mouse.up();
+  const x1 = await page.evaluate(() => window.__bodensee.ext.views.ufer.debug.x);
+  check('holding right of the child walks along the shore', x1 > x0 + 60, `${x0} -> ${x1}`);
+  await page.evaluate(() => window.__bodensee.ext.show('ufer', 'lindau'));
+  await page.mouse.move(900, 450);
+  await page.mouse.down();
+  const stamped = await waitFor(page, () => window.__bodensee.ext.has('ort-lindau'), 5000);
+  await page.mouse.up();
+  check('walking past a sign stamps the place', stamped);
+  await page.evaluate(() => window.__bodensee.ext.info('lm-zeppelin'));
+  check('info card shows title and facts', (await page.textContent('#extInfoTitle')).includes('Luftschiff') && (await page.locator('#extInfoFacts li').count()) >= 1);
+  await page.click('#extInfoClose');
+  await page.click('.ext-nav button[data-view="zeit"]');
+  await sleep(200);
+  const era0 = await page.evaluate(() => window.__bodensee.ext.views.zeit.debug.era);
+  await page.keyboard.press('ArrowRight');
+  await sleep(1300);
+  const era1 = await page.evaluate(() => window.__bodensee.ext.views.zeit.debug.era);
+  check('time travel moves to the next era', era0 !== era1, `${era0} -> ${era1}`);
+  await page.evaluate(() => window.__bodensee.ext.show('grabung'));
+  await sleep(100);
+  await page.mouse.move(250, 200);
+  await page.mouse.down();
+  for (let y = 180; y < 620; y += 26) {
+    await page.mouse.move(120, y, { steps: 3 });
+    await page.mouse.move(900, y + 13, { steps: 3 });
+  }
+  await page.mouse.up();
+  const dug = await waitFor(page, () => !document.getElementById('extInfo').hidden, 4000);
+  check('brushing the stone reveals a fossil', dug && (await page.evaluate(() => window.__bodensee.ext.has('fund-salamander'))));
+  await page.click('#extInfoClose');
+  await page.click('#extBookBtn');
+  check('Forscherbuch lists the finds', (await page.locator('#extBookGrid .book-item.got').count()) >= 1);
+  await page.click('#extBookClose');
+  await page.click('#extBack');
+  check('back button returns to the submarine', (await state(page)).mode === 'play');
+  await page.reload({ waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('the collection survives a reload', await page.evaluate(() => window.__bodensee.ext.has('ort-lindau')));
+  check('no script errors on the trips', errors.length === 0, errors.slice(0, 3).join(' | '));
+  await context.close();
+}
+
+// ---------------------------------------------------------------- languages: complete, same numbers, switch works, German stays the default
+function literalKeys() {
+  const dir = path.join(ROOT, 'src');
+  const out = new Set(['Deutschland', 'Schweiz', 'Österreich', 'Bodensee', 'ganz nah', 'nah', 'mittel', 'weit']);
+  for (const f of fs.readdirSync(dir)) {
+    if (!f.endsWith('.js') || f.startsWith('i18n-') || f === 'ext-landmarks.js' || f === 'ext-era-art.js') continue;
+    const s = fs.readFileSync(path.join(dir, f), 'utf8');
+    for (const m of s.matchAll(/(?:\b_t|\b_tf|\bsay|\.toast|\btoast)\(([^\n]*)/g)) {
+      for (const q of m[1].matchAll(/'((?:[^'\\]|\\.)*)'/g)) {
+        const v = q[1].replace(/\\'/g, "'");
+        if (/[A-Za-zÄÖÜäöü]{3}/.test(v) && !/^([a-z]+|#.*|[a-z]+[A-Z]\w*)$/.test(v)) out.add(v);
+      }
+    }
+    for (const m of s.matchAll(/label: '((?:[^'\\]|\\.)*)'/g)) out.add(m[1]);
+  }
+  return [...out];
+}
+async function languageChecks(browser, base) {
+  console.log('\n▶ Sprachen');
+  const context = await browser.newContext({ viewport: { width: 1024, height: 700 }, serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('German is the default language', (await page.evaluate(() => document.documentElement.lang)) === 'de' && (await page.textContent('#btnStart')).includes('Expedition'));
+  const runtime = await page.evaluate(() => window.__bodensee.i18nKeys());
+  const keys = [...new Set([...runtime, ...literalKeys()])];
+  const numbers = (s) => (s.replace(/(\d)[.,   ](?=\d{3}\b)/g, '$1').match(/\d+(?:[.,]\d+)?/g) || []).map((z) => z.replace(',', '.')).sort().join('|');
+  for (const code of ['en', 'it', 'fr']) {
+    const table = await page.evaluate((c) => Object.fromEntries(window.__bodensee.i18nKeys().map((k) => [k, window.__bodensee.i18n.value(c, k)])), code);
+    const lit = await page.evaluate(([c, ks]) => Object.fromEntries(ks.map((k) => [k, window.__bodensee.i18n.value(c, k)])), [code, keys]);
+    const all = { ...table, ...lit };
+    const missing = keys.filter((k) => all[k] === undefined);
+    check(`${code}: every text is translated`, missing.length === 0, missing.slice(0, 5).join(' | '));
+    const wrong = keys.filter((k) => all[k] !== undefined && numbers(k) !== numbers(all[k]));
+    check(`${code}: numbers match the German text`, wrong.length === 0, wrong.slice(0, 4).join(' | '));
+    const holes = keys.filter((k) => all[k] !== undefined && ((k.match(/\{\w+\}/g) || []).sort().join() !== (all[k].match(/\{\w+\}/g) || []).sort().join()));
+    check(`${code}: placeholders match`, holes.length === 0, holes.slice(0, 4).join(' | '));
+  }
+  await page.click('.lang-corner .lang-seg[data-lang="en"]');
+  check('switching to English changes the page', (await page.evaluate(() => document.documentElement.lang)) === 'en' && !(await page.textContent('#btnStart')).includes('starten'));
+  await page.reload({ waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title');
+  check('the choice survives a reload', (await page.evaluate(() => document.documentElement.lang)) === 'en');
+  await page.click('.lang-corner .lang-seg[data-lang="de"]');
+  check('switching back restores German', (await page.textContent('#btnStart')).includes('Expedition') && (await page.evaluate(() => document.documentElement.lang)) === 'de');
+  await context.close();
+}
+
 // ---------------------------------------------------------------- remote-only checks
 async function remoteChecks(base) {
   console.log(`\n▶ HTTP checks ${base}`);
@@ -569,6 +716,16 @@ async function remoteChecks(base) {
     await fullscreenChecks(browser, base);
   } catch (e) {
     check('fullscreen run completed', false, e.message.split('\n')[0]);
+  }
+  try {
+    await tripChecks(browser, base);
+  } catch (e) {
+    check('trip run completed', false, e.message.split('\n')[0]);
+  }
+  try {
+    await languageChecks(browser, base);
+  } catch (e) {
+    check('language run completed', false, e.message.split('\n')[0]);
   }
   await browser.close();
   if (server) server.close();

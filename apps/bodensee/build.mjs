@@ -16,7 +16,9 @@ const version = String(rawVersion || 'dev').replace(/[^A-Za-z0-9._-]/g, '').slic
 const read = (f) => readFileSync(join(here, 'src', f), 'utf8');
 const body = read('body.html').trim();
 const css = read('style.css').trim();
-const js = read('game.js').replace('__BUILD_VERSION__', version).trim();
+// The trips ashore come first: game.js starts them once its own parts are ready.
+const SOURCES = ['i18n.js', 'i18n-en.js', 'i18n-it.js', 'i18n-fr.js', 'ext-core.js', 'ext-art.js', 'ext-landmarks.js', 'ext-era-art.js', 'ext-content.js', 'ext-map.js', 'ext-shore.js', 'ext-time.js', 'game.js'];
+const js = SOURCES.map((f) => read(f)).join('\n').replace('__BUILD_VERSION__', version).trim();
 const hash = createHash('sha256').update(body + css + js).digest('hex').slice(0, 10);
 
 const TITLE = 'Leopolds Bodensee-Expedition';

@@ -261,6 +261,13 @@ button:focus-visible { outline: 3px solid var(--sonar); outline-offset: 3px; }
   color: var(--sonar);
   background: radial-gradient(circle at 35% 30%, #145c46, #032419 75%);
 }
+.map-btn {
+  width: 66px;
+  height: 66px;
+  border-color: #fff0a8;
+  background: radial-gradient(circle at 50% 30%, #2c8f6f, #0f4d4a);
+  color: #fff7d6;
+}
 .ping-btn.cooling { opacity: 0.6; }
 .ping-btn.pulse { animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse {
@@ -763,6 +770,7 @@ button.log-item { cursor: pointer; }
   .gauge-readout b { font-size: 1.7rem; }
   .sonar canvas { width: 132px; height: 132px; }
   .light-btn { width: 72px; height: 72px; }
+  .map-btn { width: 72px; height: 72px; }
   .ping-btn { width: 96px; height: 96px; }
   .round-btn svg { width: 32px; height: 32px; }
   .icon-btn { width: 56px; height: 56px; }
@@ -784,6 +792,7 @@ button.log-item { cursor: pointer; }
   .gauge-readout b { font-size: 1.1rem; }
   .sonar canvas { width: 72px; height: 72px; }
   .light-btn { width: 50px; height: 50px; }
+  .map-btn { width: 50px; height: 50px; }
   .ping-btn { width: 62px; height: 62px; }
   .icon-btn { width: 44px; height: 44px; }
   .scale-note { top: calc(var(--safe-t) + var(--edge) + 50px); }
@@ -812,4 +821,157 @@ button.log-item { cursor: pointer; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* Trips ashore and through time */
+.ausflug { position: absolute; inset: 0; z-index: 5; background: #bfe3ee; }
+#extCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.ext-top {
+  position: absolute;
+  top: calc(var(--safe-t) + 8px);
+  left: max(10px, var(--safe-l));
+  right: max(10px, var(--safe-r));
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  pointer-events: none;
+}
+.ext-top > * { pointer-events: auto; }
+.ext-back, .ext-book-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 46px;
+  padding: 6px 14px 6px 10px;
+  border-radius: 999px;
+  border: 2px solid var(--glass-line);
+  background: var(--glass);
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--s0);
+  cursor: pointer;
+}
+.ext-back svg, .ext-book-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ext-back:active, .ext-book-btn:active { transform: scale(0.96); }
+.ext-head {
+  display: grid;
+  justify-items: center;
+  padding: 5px 16px;
+  border-radius: 16px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  text-align: center;
+  pointer-events: none !important;
+  min-width: 0;
+}
+.ext-head b { font-family: var(--font-display); font-size: var(--s1); letter-spacing: 0.02em; }
+.ext-head span { font-size: var(--s-1); color: var(--muted); }
+.ext-head span:empty { display: none; }
+.ext-nav {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--safe-b) + 10px);
+  transform: translateX(-50%);
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+}
+.ext-nav button {
+  min-height: 44px;
+  padding: 6px 16px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--s0);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.ext-nav button[aria-current="true"] { background: linear-gradient(180deg, #ffe066, #f4b81c); color: var(--sub-ink); }
+.ext-hint {
+  position: absolute;
+  left: 50%;
+  top: calc(var(--safe-t) + 66px);
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(560px, calc(100% - 28px));
+  padding: 9px 16px;
+  border-radius: 14px;
+  background: rgba(244, 231, 201, 0.97);
+  color: var(--ink);
+  font-size: var(--s0);
+  font-weight: 600;
+  text-align: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+}
+.ausflug > .screen { z-index: 2; }
+.book-rank { margin: 0; font-family: var(--font-hand); font-size: var(--s1); color: var(--ink-soft); text-align: left; width: 100%; }
+.book-tabs { flex-wrap: wrap; }
+.book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; width: 100%; max-height: 46vh; overflow-y: auto; }
+.book-item {
+  min-height: 48px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1.5px dashed var(--brass-dark);
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  text-align: left;
+}
+.book-item.got { border-style: solid; background: #fffaf0; color: var(--ink); font-weight: 600; cursor: pointer; }
+.book-item.got:active { transform: scale(0.98); }
+.ext-time {
+  position: absolute;
+  left: max(10px, var(--safe-l));
+  right: max(10px, var(--safe-r));
+  bottom: calc(var(--safe-b) + 66px);
+  pointer-events: none;
+}
+@media (max-height: 460px) {
+  .ext-nav button { min-height: 40px; padding: 4px 12px; }
+  .ext-hint { top: calc(var(--safe-t) + 58px); }
+  .book-grid { max-height: 38vh; }
+}
+
+/* language switch */
+.lang-pick {
+  display: inline-flex;
+  gap: 3px;
+  padding: 3px;
+  border-radius: 999px;
+  background: rgba(3, 22, 28, 0.7);
+  border: 1px solid rgba(234, 246, 243, 0.15);
+}
+.lang-corner { position: absolute; top: calc(var(--safe-t) + 10px); right: max(12px, var(--safe-r)); }
+.lang-seg {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--s-1);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.lang-seg[aria-checked="true"] { background: var(--lake-lite); color: #02232b; }
+.ausflug[data-view="zeit"] .ext-hint { top: auto; bottom: calc(var(--safe-b) + 124px); }
+.ext-back span, .ext-book-btn span { white-space: nowrap; }
+@media (max-width: 480px) {
+  .ext-nav { max-width: calc(100% - 12px); }
+  .ext-nav button { padding: 4px 10px; font-size: 0.8rem; white-space: normal; line-height: 1.1; }
+  .ext-back { padding: 6px 10px; }
+  .ext-back span { display: none; }
+  .ext-head { padding: 4px 10px; }
+  .ext-head span { font-size: 0.68rem; }
 }

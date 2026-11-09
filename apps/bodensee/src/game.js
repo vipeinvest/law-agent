@@ -83,18 +83,19 @@
     {
       id: 'pfahlbauten', x: 1250, flat: 320, title: 'Die Pfahlbauten', short: 'Pfahlbauten',
       facts: [
-        'Vor über 5000 Jahren bauten Menschen am Bodensee ihre Häuser auf Holzpfählen – direkt am Ufer, über dem Wasser.',
+        'Die ältesten Pfahlbauten am Bodensee sind fast 6000 Jahre alt, die jüngsten rund 2900 Jahre. Die Menschen bauten ihre Häuser auf Holzpfählen, direkt am Ufer.',
         'Die Pfähle steckten tief im weichen Seegrund. Unter Wasser verrottet Holz kaum, darum findet man manche Reste bis heute.',
-        'Seit 2011 gehören die Pfahlbauten rund um die Alpen zum UNESCO-Welterbe.',
+        'Seit 2011 gehören die Reste der Pfahlbauten rund um die Alpen zum UNESCO-Welterbe. Sie liegen meist unsichtbar im Seegrund.',
         'Oben auf dem Wasser siehst du nachgebaute Pfahlbau-Häuser, wie es sie im Museum gibt.',
       ],
-      praise: 'Manche dieser Pfähle sind älter als die Pyramiden in Ägypten!',
+      praise: 'Die ältesten Pfähle am See sind älter als die Pyramiden in Ägypten!',
       hint: 'Ganz in der Nähe der Station, im flachen Wasser, stehen uralte Holzpfähle.',
     },
     {
       id: 'felchen', x: 2350, flat: 120, title: 'Der Felchen-Schwarm', short: 'Felchen',
       facts: [
-        'Felchen sind die wichtigsten Fische für die Fischer am Bodensee. Besonders bekannt ist der Blaufelchen.',
+        'Felchen waren jahrzehntelang die wichtigsten Fische der Bodensee-Fischer. Besonders bekannt ist der Blaufelchen.',
+        'Weil es immer weniger Felchen gab, wurde ihr Fang im Obersee ab 2024 verboten. Für 2027 ist wieder ein kleiner Fang erlaubt.',
         'Sie schwimmen in großen Schwärmen im freien Wasser und fressen winzig kleines Plankton.',
         'Ihre silbernen Schuppen spiegeln das Licht. So sind sie für Raubfische schwer zu entdecken.',
       ],
@@ -105,7 +106,7 @@
       id: 'anker', x: 3350, flat: 240, title: 'Der alte Anker', short: 'Anker',
       facts: [
         'Ein Anker hält ein Schiff an seinem Platz, damit Wind und Wellen es nicht forttreiben.',
-        'Früher brachten große Lastsegelschiffe, die Lädinen, Holz, Salz und Getreide über den Bodensee.',
+        'Früher brachten große Lastsegelschiffe, die Lädinen, Getreide, Salz, Wein und Baumaterial über den Bodensee.',
         'Dieser Anker ist von Rost und Schlamm bedeckt. Wem er wohl einmal gehört hat?',
       ],
       praise: 'Ein echtes Stück Seefahrts-Geschichte!',
@@ -124,13 +125,13 @@
     {
       id: 'jura', x: 6250, flat: 380, title: 'Das Dampfschiff Jura', short: 'Jura',
       facts: [
-        'Die Jura war ein hölzernes Dampfschiff mit großen Schaufelrädern an den Seiten.',
-        'Im Februar 1864 stieß sie bei dichtem Nebel mit dem Dampfer „Stadt Zürich“ zusammen und sank in wenigen Minuten.',
-        'Heute liegt das Wrack in rund 38 Metern Tiefe. Dort unten ist es kalt, still und fast dunkel.',
-        'Erst 1953 wurde das Wrack wiederentdeckt. Für Forscher ist es ein wertvolles Stück Geschichte.',
+        'Die Jura war ein Raddampfer aus Holz, gebaut 1854, mit großen Schaufelrädern an den Seiten.',
+        'Am 12. Februar 1864 stieß sie bei dichtem Nebel mit dem Dampfer „Stadt Zürich“ zusammen und sank in nur vier Minuten.',
+        'Heute liegt das Wrack fast 40 Meter tief. Dort unten ist es kalt, still und fast dunkel.',
+        '1953 fand ein Taucher das Wrack zufällig. Heute steht es unter Schutz, und man darf nichts mitnehmen.',
       ],
       praise: '',
-      hint: 'Ganz hinten, in rund 38 Metern Tiefe, liegt ein altes Dampfschiff.',
+      hint: 'Ganz hinten, fast 40 Meter tief, liegt ein altes Dampfschiff.',
     },
   ];
   const SITE_BY_ID = Object.fromEntries(SITES.map((s) => [s.id, s]));
@@ -196,7 +197,10 @@
     Object.assign(s, PAGE_POS[s.id]());
     s.r = s.id === 'felchen' ? 120 : 105;
     s.scan = 0;
-    s.depthLabel = s.id === 'jura' ? 'rund 38 m Tiefe' : `ca. ${Math.round(toMeters(s.y + 40))} m Tiefe`;
+  }
+
+  function depthText(s) {
+    return s.id === 'jura' ? _t('fast 40 m Tiefe') : _tf('ca. {n} m Tiefe', { n: Math.round(toMeters(s.y + 40)) });
   }
 
   // ------------------------------------------------------------------ static scenery (seeded)
@@ -274,7 +278,7 @@
     felchen: {
       name: 'Felchen', len: 44, h: 0.27, back: '#516f80', flank: '#b9ccd6', belly: '#f2f7f8', fin: '#9fb3bd', eye: '#dde6ea',
       pattern: 'silver', dorsal: 'normal', cruise: 52, wag: 0.5, freq: 1.1,
-      fact: 'Lebt im Schwarm im freien Wasser und frisst Plankton. Der wichtigste Fisch der Bodensee-Fischer.',
+      fact: 'Lebt im Schwarm im freien Wasser und frisst Plankton. War jahrzehntelang der wichtigste Fisch der Bodensee-Fischer.',
     },
     rotauge: {
       name: 'Rotauge', len: 34, h: 0.36, back: '#3f5e4f', flank: '#b8c7bd', belly: '#eef1ea', fin: '#d4573c', eye: '#d6352a',
@@ -2118,6 +2122,7 @@
     }
     drawPlants(c, v, t, true);
     drawReeds(c, v, t);
+    if (!v.photo) drawSeaFinds(c, v, t);
     if (!v.photo) drawPages(c, v, t);
     drawLighting(c, v, t, v.photo ? { lightCtx: v.lightCtx } : null);
     if (!v.photo) {
@@ -2354,7 +2359,43 @@
     }
   }
 
+  // Small finds on the lake bed, they go into the Forscherbuch.
+  function drawSeaFinds(c, v, t) {
+    for (const f of BE.seaFinds) {
+      if (BE.has(f.id)) continue;
+      const y = groundY(f.x) - 16;
+      const glow = 0.45 + 0.3 * Math.sin(t * 2.4 + f.x);
+      c.fillStyle = `rgba(255,226,120,${(glow * 0.45).toFixed(3)})`;
+      c.beginPath();
+      c.arc(f.x, y, 26, 0, TAU);
+      c.fill();
+      c.fillStyle = '#ffd23f';
+      c.beginPath();
+      c.arc(f.x, y, 10, Math.PI, 0);
+      c.lineTo(f.x + 10, y + 5);
+      c.lineTo(f.x - 10, y + 5);
+      c.closePath();
+      c.fill();
+      c.strokeStyle = '#a97f1c';
+      c.lineWidth = 1.4;
+      for (const d of [-5, 0, 5]) {
+        c.beginPath();
+        c.moveTo(f.x, y + 4);
+        c.lineTo(f.x + d * 1.4, y - 8);
+        c.stroke();
+      }
+    }
+  }
+  function checkSeaFinds() {
+    for (const f of BE.seaFinds) {
+      if (BE.has(f.id) || Math.abs(sub.x - f.x) > 110 || Math.abs(sub.y - (groundY(f.x) - 16)) > 110) continue;
+      BE.collect(f.id);
+      say(_tf('Neu im Forscherbuch: {title}. {text}', { title: _t(f.title), text: _t(f.say) }));
+    }
+  }
+
   function updateGame(dt) {
+    checkSeaFinds();
     state.elapsed += dt;
     const m = toMeters(sub.y);
     if (m > state.maxDepth) state.maxDepth = m;
@@ -2519,20 +2560,20 @@
   let cardSpeech = '';
   function openCard(s, fresh) {
     cardFromPlay = fresh;
-    cardSpeech = `${s.title}. ${s.facts.join(' ')}`;
+    cardSpeech = `${_t(s.title)}. ${s.facts.map(_t).join(' ')}`;
     const n = state.found.indexOf(s.id) + 1;
-    $('cardEyebrow').textContent = `Logbuch-Seite ${n} von ${SITES.length} · ${s.depthLabel}`;
-    $('cardTitle').textContent = s.title;
+    $('cardEyebrow').textContent = _tf('Logbuch-Seite {n} von {m} · {depth}', { n, m: SITES.length, depth: depthText(s) });
+    $('cardTitle').textContent = _t(s.title);
     const ul = $('cardFacts');
     ul.textContent = '';
     for (const fact of s.facts) {
       const li = document.createElement('li');
-      li.textContent = fact;
+      li.textContent = _t(fact);
       ul.appendChild(li);
     }
     renderSiteArt(s.id, $('cardArt'));
     setMode('card');
-    $('btnCardClose').textContent = fresh ? 'Weiter forschen' : 'Zurück zum Logbuch';
+    $('btnCardClose').textContent = _t(fresh ? 'Weiter forschen' : 'Zurück zum Logbuch');
     setTimeout(() => $('btnCardClose').focus({ preventScroll: true }), 50);
   }
 
@@ -2551,7 +2592,7 @@
     }
     setMode('play');
     const nx = nearestUnfound(sub.x, sub.y);
-    if (nx) say(`${s.praise} ${nx.site.hint}`.trim());
+    if (nx) say(`${_t(s.praise)} ${_t(nx.site.hint)}`.trim());
   }
 
   function markSeen(key) {
@@ -2560,9 +2601,9 @@
     const sp = SPECIES[key];
     if (!state.flags.fishFirst) {
       state.flags.fishFirst = true;
-      say(`Schau mal, ein ${sp.name}! Ich trage jeden neuen Fisch in dein Fischbuch ein. Es steckt im Logbuch.`);
+      say(_tf('Schau mal: {name}! Ich trage jeden neuen Fisch in dein Fischbuch ein. Es steckt im Logbuch.', { name: _t(sp.name) }));
     } else {
-      say(`Neu im Fischbuch: ${sp.name}! ${sp.fact}`);
+      say(_tf('Neu im Fischbuch: {name}! {fact}', { name: _t(sp.name), fact: _t(sp.fact) }));
     }
     saveProgress();
     updateHud(true);
@@ -2570,7 +2611,8 @@
 
   // ------------------------------------------------------------------ radio + dialogs
   const radio = { queue: [], cur: null, shown: 0, hold: 0 };
-  function say(text) {
+  function say(raw) {
+    const text = _t(raw);
     if (radio.queue.some((q) => q === text) || (radio.cur && radio.cur.text === text)) return;
     radio.queue.push(text);
   }
@@ -2625,6 +2667,7 @@
     'Heute Nacht hat ein Sturm mein Forscher-Logbuch über Bord geweht. Fünf Seiten sind auf den Grund des Bodensees gesunken!',
     'Jede Seite liegt an einem besonderen Ort: bei uralten Pfählen, in einem Fischschwarm, an einem Anker, beim größten Fisch des Sees und bei einem versunkenen Dampfschiff.',
     'Die Seiten leuchten golden. Fahr ganz nah heran, dann scannt dein U-Boot die Seite automatisch und du erfährst ihr Geheimnis.',
+    'Und wenn du magst: Mit dem Knopf „Karte“ gehst du an Land, wanderst um den ganzen See und reist sogar bis zu den Sauriern.',
     'Keine Eile, Kapitän – hier unten gibt es keine Gefahren, nur viel zu entdecken. Leinen los!',
   ];
   const FINALE = [
@@ -2634,7 +2677,7 @@
   ];
   const dialog = { lines: [], i: 0, shown: 0, done: null, read: false };
   function readDialog() {
-    Reader.speak(dialog.lines[dialog.i], $('btnDialogSpeak'));
+    Reader.speak(_t(dialog.lines[dialog.i]), $('btnDialogSpeak'));
   }
   function runDialog(lines, done) {
     dialog.read = false;
@@ -2649,11 +2692,11 @@
   }
   function updateDialogStep() {
     $('dialogStep').textContent = `${dialog.i + 1} / ${dialog.lines.length}`;
-    $('btnDialogNext').textContent = dialog.i === dialog.lines.length - 1 ? (dialog.lines === INTRO ? 'Los geht’s!' : 'Weiter') : 'Weiter';
+    $('btnDialogNext').textContent = _t(dialog.i === dialog.lines.length - 1 && dialog.lines === INTRO ? 'Los geht’s!' : 'Weiter');
   }
   function updateDialog(dt) {
     if (state.mode !== 'dialog') return;
-    const line = dialog.lines[dialog.i];
+    const line = _t(dialog.lines[dialog.i]);
     if (dialog.shown < line.length) {
       const before = Math.floor(dialog.shown);
       dialog.shown = Math.min(line.length, dialog.shown + dt * 52);
@@ -2662,7 +2705,7 @@
   }
   function dialogNext() {
     Sound.click();
-    const line = dialog.lines[dialog.i];
+    const line = _t(dialog.lines[dialog.i]);
     if (dialog.shown < line.length) {
       dialog.shown = line.length;
       $('dialogText').textContent = line;
@@ -2898,9 +2941,9 @@
       say('Alle Seiten sind gefunden! Das Sonar findet nur noch Fische – erkunde den See, so lange du magst.');
       return;
     }
-    const dist = nx.d < 450 ? 'ganz nah' : nx.d < 1400 ? 'nah' : nx.d < 3000 ? 'mittel' : 'weit';
+    const dist = _t(nx.d < 450 ? 'ganz nah' : nx.d < 1400 ? 'nah' : nx.d < 3000 ? 'mittel' : 'weit');
     pingInfo = { t: 5.5, site: nx.site };
-    $('pingText').textContent = `Logbuch-Seite · ${dist}`;
+    $('pingText').textContent = _tf('Logbuch-Seite · {dist}', { dist });
     $('pingHint').hidden = false;
     updatePingHint();
   }
@@ -2910,7 +2953,7 @@
     Sound.click();
     const b = $('btnLight');
     b.setAttribute('aria-pressed', String(sub.light));
-    b.setAttribute('aria-label', sub.light ? 'Scheinwerfer ausschalten' : 'Scheinwerfer einschalten');
+    b.setAttribute('aria-label', _t(sub.light ? 'Scheinwerfer ausschalten' : 'Scheinwerfer einschalten'));
   }
 
   // ------------------------------------------------------------------ logbook UI
@@ -2970,9 +3013,9 @@
         el.appendChild(u);
       }
       const b = document.createElement('b');
-      b.textContent = found ? s.title : 'Noch nicht gefunden';
+      b.textContent = _t(found ? s.title : 'Noch nicht gefunden');
       const sm = document.createElement('small');
-      sm.textContent = found ? s.depthLabel : 'Tipp: Benutze den Sonar-Ping.';
+      sm.textContent = found ? depthText(s) : _t('Tipp: Benutze den Sonar-Ping.');
       el.append(b, sm);
       sites.appendChild(el);
     }
@@ -2995,16 +3038,16 @@
         el.appendChild(u);
       }
       const b = document.createElement('b');
-      b.textContent = seen ? SPECIES[key].name : '???';
+      b.textContent = seen ? _t(SPECIES[key].name) : '???';
       const sm = document.createElement('small');
-      sm.textContent = seen ? SPECIES[key].fact : 'Noch nicht entdeckt. Schwimm nah an Fische heran!';
+      sm.textContent = _t(seen ? SPECIES[key].fact : 'Noch nicht entdeckt. Schwimm nah an Fische heran!');
       if (seen) {
         const speakBtn = $('btnCardSpeak').cloneNode(true);
         speakBtn.removeAttribute('id');
         speakBtn.classList.add('fish-speak');
-        speakBtn.setAttribute('aria-label', `${SPECIES[key].name} vorlesen`);
+        speakBtn.setAttribute('aria-label', _tf('{name} vorlesen', { name: _t(SPECIES[key].name) }));
         speakBtn.setAttribute('aria-pressed', 'false');
-        speakBtn.addEventListener('click', () => Reader.toggle(`${SPECIES[key].name}. ${SPECIES[key].fact}`, speakBtn));
+        speakBtn.addEventListener('click', () => Reader.toggle(`${_t(SPECIES[key].name)}. ${_t(SPECIES[key].fact)}`, speakBtn));
         el.appendChild(speakBtn);
       }
       el.append(b, sm);
@@ -3023,7 +3066,7 @@
   }
 
   // ------------------------------------------------------------------ modes
-  const SCREENS = ['title', 'dialog', 'pause', 'card', 'logbook', 'ending', 'confirm'];
+  const SCREENS = ['title', 'dialog', 'pause', 'card', 'logbook', 'ending', 'confirm', 'ausflug'];
   function setMode(m) {
     Reader.stop();
     if (state.mode === 'play' && m !== 'play') releaseInput();
@@ -3050,7 +3093,7 @@
     if (fromSave) {
       setMode('play');
       const left = SITES.length - state.found.length;
-      if (left > 0) say(`Willkommen zurück, Kapitän Leopold! Noch ${left === 1 ? 'eine Seite fehlt' : left + ' Seiten fehlen'}. ${nearestUnfound(sub.x, sub.y).site.hint}`);
+      if (left > 0) say(_tf(left === 1 ? 'Willkommen zurück, Kapitän Leopold! Noch eine Seite fehlt. {hint}' : 'Willkommen zurück, Kapitän Leopold! Noch {n} Seiten fehlen. {hint}', { n: left, hint: _t(nearestUnfound(sub.x, sub.y).site.hint) }));
       else say('Willkommen zurück, Ehren-Seeforscher! Erkunde den See, so lange du magst.');
       updateHud(true);
     } else {
@@ -3106,11 +3149,12 @@
   function showEnding() {
     $('statSites').textContent = `${state.found.length}/${SITES.length}`;
     $('statFish').textContent = `${state.seen.size}/${FISH_ORDER.length}`;
+    $('statBook').textContent = `${BE.count()}/${BE.total()}`;
     $('statDepth').textContent = `${Math.round(state.maxDepth)} m`;
     const sec = Math.round(state.elapsed);
     $('statTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
     try {
-      $('certDate').textContent = new Date().toLocaleDateString('de-AT', { day: 'numeric', month: 'long', year: 'numeric' });
+      $('certDate').textContent = new Date().toLocaleDateString(I18N.info.locale, { day: 'numeric', month: 'long', year: 'numeric' });
     } catch (e) {
       $('certDate').textContent = new Date().toDateString();
     }
@@ -3513,12 +3557,12 @@
     const synth = window.speechSynthesis;
     const Utterance = window.SpeechSynthesisUtterance;
     const FATAL = ['synthesis-unavailable', 'language-unavailable', 'voice-unavailable'];
-    const SPOKEN = [
-      [/\bLEO 1\b/g, 'Leo Eins'],
-      [/\bca\.\s*/g, 'circa '],
-      [/(\d)\s?m\b/g, '$1 Meter'],
-      [/\s[–—]\s/g, ', '],
-    ];
+    const SPOKEN = {
+      de: [[/\bLEO 1\b/g, 'Leo Eins'], [/\bca\.\s*/g, 'circa '], [/(\d)\s?m\b/g, '$1 Meter'], [/\s[–—]\s/g, ', ']],
+      en: [[/\bLEO 1\b/g, 'Leo One'], [/(\d)\s?m\b/g, '$1 metres'], [/\s[–—]\s/g, ', ']],
+      it: [[/\bLEO 1\b/g, 'Leo Uno'], [/(\d)\s?m\b/g, '$1 metri'], [/\s[–—]\s/g, ', ']],
+      fr: [[/\bLEO 1\b/g, 'Léo Un'], [/(\d)\s?m\b/g, '$1 mètres'], [/\s[–—]\s/g, ', ']],
+    };
     let voice = null;
     let activeBtn = null;
     let run = 0;
@@ -3532,16 +3576,17 @@
     // Voice names are all that tells them apart: the better engines first, a friendly female voice for the professor, no joke voices.
     function voiceScore(v) {
       const name = v.name || '';
-      return (/premium|enhanced|erweitert|natural|neural/i.test(name) ? 4 : 0)
-        + (/anna|petra|helena|katja|hedda|ingrid|vicki|marlene|amala|kerstin|sonja/i.test(name) ? 2 : 0)
-        + (/^de-AT/i.test(langOf(v)) ? 1 : 0)
+      return (/premium|enhanced|erweitert|natural|neural|améliorée|migliorata/i.test(name) ? 4 : 0)
+        + (/anna|petra|helena|katja|hedda|ingrid|vicki|marlene|amala|kerstin|sonja|samantha|karen|serena|zira|hazel|susan|libby|alice|federica|elsa|paola|isabella|am[eé]lie|audrey|aur[eé]lie|marie|hortense|julie|denise/i.test(name) ? 2 : 0)
+        + (I18N.info.region.test(langOf(v)) ? 1 : 0)
         - (/grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley/i.test(name) ? 8 : 0);
     }
     function pickVoice() {
       const all = synth.getVoices();
       if (!all.length) return; // the list often arrives later, see voiceschanged
-      const de = all.filter((v) => /^de(-|$)/i.test(langOf(v)) && v.localService !== false);
-      voice = de.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
+      const own = new RegExp(`^${I18N.lang}(-|$)`, 'i');
+      const local = all.filter((v) => own.test(langOf(v)) && v.localService !== false);
+      voice = local.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
       document.documentElement.classList.toggle('no-speech', !voice);
     }
     function init() {
@@ -3554,7 +3599,7 @@
     }
     // Every separate utterance starts after an audible gap, so a text stays in one piece unless it is far longer than any in the game.
     function chunks(text) {
-      const spoken = SPOKEN.reduce((t, [from, to]) => t.replace(from, to), text);
+      const spoken = SPOKEN[I18N.lang].reduce((t, [from, to]) => t.replace(from, to), text);
       const out = [];
       for (const sentence of spoken.match(/[^.!?]+[.!?]*\s*/g) || [spoken]) {
         if (out.length && out[out.length - 1].length + sentence.length < 1500) out[out.length - 1] += sentence;
@@ -3590,7 +3635,7 @@
           return;
         }
         const u = new Utterance(parts[i]);
-        u.lang = voice ? voice.lang : 'de-DE';
+        u.lang = voice ? voice.lang : I18N.info.locale;
         if (voice) u.voice = voice;
         // Below rate 1 some engines stretch words and start to stutter; the raised pitch keeps it warm for children.
         u.rate = 1;
@@ -3619,7 +3664,18 @@
       speak(text, btn);
       return true;
     }
-    return { init, speak, toggle, stop, isActive: (btn) => activeBtn === btn };
+    return {
+      init,
+      speak,
+      toggle,
+      stop,
+      isActive: (btn) => activeBtn === btn,
+      relang() {
+        if (!synth || !Utterance) return;
+        stop();
+        pickVoice();
+      },
+    };
   })();
   Reader.init();
 
@@ -3756,7 +3812,7 @@
     if (best) {
       fishTag = { f: best, t: 2.6 };
       const el = $('fishTag');
-      el.textContent = best.sp.name;
+      el.textContent = _t(best.sp.name);
       el.hidden = false;
       if (!state.seen.has(best.key)) markSeen(best.key);
     }
@@ -3800,6 +3856,10 @@
 
   const KEYMAP = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right', ArrowUp: 'up', w: 'up', W: 'up', ArrowDown: 'down', s: 'down', S: 'down' };
   window.addEventListener('keydown', (e) => {
+    if (state.mode === 'ausflug') {
+      if (BE.key(e, true)) e.preventDefault();
+      return;
+    }
     if (KEYMAP[e.key]) {
       input.keys[KEYMAP[e.key]] = true;
       if (state.mode === 'play') {
@@ -3819,6 +3879,7 @@
     }
   });
   window.addEventListener('keyup', (e) => {
+    if (state.mode === 'ausflug') BE.key(e, false);
     if (KEYMAP[e.key]) input.keys[KEYMAP[e.key]] = false;
   });
   window.addEventListener('blur', () => {
@@ -3875,7 +3936,7 @@
     function sync() {
       const btn = $('btnFullscreen');
       btn.hidden = !supported;
-      btn.textContent = active() ? 'Vollbild beenden' : 'Vollbild einschalten';
+      btn.textContent = _t(active() ? 'Vollbild beenden' : 'Vollbild einschalten');
     }
     function changed() {
       sync();
@@ -3889,6 +3950,7 @@
     sync();
     return {
       resume,
+      sync,
       start() {
         wanted = true;
         resume();
@@ -3936,6 +3998,11 @@
     e.stopPropagation(); // a tap on the bubble itself skips the message
     if (radio.cur) Reader.toggle(radio.cur.text, $('btnRadioSpeak'));
   });
+  bind('btnMap', () => {
+    Sound.click();
+    saveProgress();
+    BE.open('karte');
+  });
   bind('btnPause', () => pauseGame(false));
   bind('btnResume', resumeGame);
   bind('btnRestart', () => openConfirm('pause'));
@@ -3962,14 +4029,15 @@
     if (state.muted) Reader.stop();
     const b = $('btnSound');
     b.setAttribute('aria-pressed', String(!state.muted));
-    b.setAttribute('aria-label', state.muted ? 'Ton einschalten' : 'Ton ausschalten');
+    b.setAttribute('aria-label', _t(state.muted ? 'Ton einschalten' : 'Ton ausschalten'));
     saveSettings();
   });
   bind('btnRoam', () => {
     Sound.click();
     setMode('play');
     const missing = FISH_ORDER.length - state.seen.size;
-    say(missing > 0 ? `Dir fehlen noch ${missing} Fischarten im Fischbuch. Erkunde den See in Ruhe weiter!` : 'Du hast alle Fischarten entdeckt! Genieß die Aussicht, Kapitän.');
+    if (missing > 1) say(_tf('Dir fehlen noch {n} Fischarten im Fischbuch. Erkunde den See in Ruhe weiter!', { n: missing }));
+    else say(missing === 1 ? 'Dir fehlt noch eine Fischart im Fischbuch. Erkunde den See in Ruhe weiter!' : 'Du hast alle Fischarten entdeckt! Genieß die Aussicht, Kapitän.');
   });
   bind('btnNewGame', () => openConfirm('ending'));
   $('radio').addEventListener('click', skipRadio);
@@ -4022,7 +4090,8 @@
       render(mainView(), state.time);
       needsStaticRender = false;
     }
-    if (state.mode !== 'title') {
+    if (state.mode === 'ausflug') BE.frame(dt);
+    else if (state.mode !== 'title') {
       updateHud(false);
       drawSonar(state.time);
       updatePingHint();
@@ -4048,23 +4117,45 @@
     requestAnimationFrame(frame);
   }
 
-  // ------------------------------------------------------------------ boot
-  function boot() {
-    loadSettings();
-    syncControlButtons();
-    const sb = $('btnSound');
-    sb.setAttribute('aria-pressed', String(!state.muted));
-    sb.setAttribute('aria-label', state.muted ? 'Ton einschalten' : 'Ton ausschalten');
-    causticPattern = ctx.createPattern(causticCv, 'repeat');
-    document.querySelectorAll('canvas.avatar').forEach(drawAvatar);
-    resize();
+  // ------------------------------------------------------------------ language
+  function syncTitleButtons() {
     const save = loadProgress();
     if (save && (save.found || []).length + (save.seen || []).length > 0) {
       $('btnContinue').hidden = false;
-      $('btnContinue').textContent = save.finished ? 'Weiter erkunden' : `Weiterspielen (${(save.found || []).length}/5 Seiten)`;
-      $('btnStart').textContent = 'Neue Expedition';
+      $('btnContinue').textContent = save.finished ? _t('Weiter erkunden') : _tf('Weiterspielen ({n}/5 Seiten)', { n: (save.found || []).length });
+      $('btnStart').textContent = _t('Neue Expedition');
       $('btnStart').classList.remove('btn-primary');
     }
+  }
+  function applyLanguage() {
+    I18N.applyDom($('app'));
+    document.title = _t('Leopolds Bodensee-Expedition');
+    document.querySelectorAll('.lang-seg').forEach((b) => b.setAttribute('aria-checked', String(b.dataset.lang === I18N.lang)));
+    syncTitleButtons();
+    Fullscreen.sync();
+    Reader.relang();
+    $('btnSound').setAttribute('aria-label', _t(state.muted ? 'Ton einschalten' : 'Ton ausschalten'));
+    $('btnLight').setAttribute('aria-label', _t(sub.light ? 'Scheinwerfer ausschalten' : 'Scheinwerfer einschalten'));
+    $('logCount').textContent = `${state.found.length}/${SITES.length}`;
+  }
+
+  // ------------------------------------------------------------------ boot
+  function boot() {
+    loadSettings();
+    BE.init({ $, Sound, Reader, setMode, state, say });
+    syncControlButtons();
+    const sb = $('btnSound');
+    sb.setAttribute('aria-pressed', String(!state.muted));
+    causticPattern = ctx.createPattern(causticCv, 'repeat');
+    document.querySelectorAll('canvas.avatar').forEach(drawAvatar);
+    resize();
+    applyLanguage();
+    document.querySelectorAll('.lang-seg').forEach((b) => b.addEventListener('click', () => {
+      Sound.click();
+      I18N.set(b.dataset.lang);
+      applyLanguage();
+      clearRadio();
+    }));
     setMode('title');
     updateCamera(0, true);
     if (window.innerWidth < window.innerHeight && window.innerWidth < 600) {
@@ -4093,6 +4184,15 @@
     teleport(x, y) { sub.x = x; sub.y = y; sub.vx = 0; sub.vy = 0; updateCamera(0, true); },
     worldToScreen(x, y) { const v = mainView(); return { x: sxOf(v, x), y: syOf(v, y) }; },
     say,
+    ext: BE,
+    i18n: I18N,
+    // Everything the player can read, for the translation checks.
+    i18nKeys() {
+      const keys = [...I18N.domKeys($('app')), 'Leopolds Bodensee-Expedition', ...INTRO, ...FINALE, ...BE.textKeys()];
+      for (const s of SITES) keys.push(s.title, ...s.facts, s.praise, s.hint);
+      for (const k of FISH_ORDER) keys.push(SPECIES[k].name, SPECIES[k].fact);
+      return [...new Set(keys.filter((k) => k && /[A-Za-zÄÖÜäöü]/.test(k)))];
+    },
     see(key) { state.seen.add(key || FISH_ORDER[0]); },
   };
 

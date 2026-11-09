@@ -22,10 +22,27 @@ Alle Fundorte sind im Spiel ausdrücklich als **nicht maßstabsgetreu** gekennze
 
 **Technik:** HTML5 Canvas 2D, eine JS-Datei ohne Abhängigkeiten. Alle Grafiken werden zur Laufzeit gezeichnet: Tiefenverlauf, Lichtstrahlen, Kaustiken, Scheinwerferkegel mit Dunkelheit je nach Tiefe, Partikel, Schwarm-Verhalten, Sonar. Musik und Geräusche erzeugt die Web Audio API (Ambient-Musik, Wasser, Motor, Blasen, Sonar mit Echo, Funk, Fund-Melodie). Pointer Events mit `setPointerCapture` und `touch-action: none` (Touch-Fallback für alte iOS-Versionen). Auflösung und Lichtqualität passen sich langsamen Geräten automatisch an.
 
+## Ausflüge (Knopf „Karte“)
+
+- **Seekarte:** echte Uferlinie (Natural Earth, gemeinfrei), drei Länder, Grenzen, 28 Orte, Rhein, tiefste Stelle.
+- **Landgang:** Rundweg um den ganzen See in Seitenansicht, 28 Stempel, rund 40 Sehenswürdigkeiten und Tiere, Grenzübergänge.
+- **Zeitreise:** 13 Zeiten von der Trias bis heute mit rund 40 antippbaren Tieren und Menschen. Am See selbst gibt es keine Dinosaurier-Funde, das Spiel sagt das offen und zeigt die nächsten echten Fundorte.
+- **Fossil-Grabung:** Staub von drei Steinplatten aus Öhningen wischen.
+- **Forscherbuch:** sammelt alle Funde lokal im Browser.
+
+Alle Aussagen mit Quelle: `FAKTEN.md`. Bei Änderungen am deutschen Text immer die Sprachdateien mitziehen, der deutsche Satz ist der Schlüssel; `tests/smoke.cjs` bricht ab, wenn eine Übersetzung fehlt oder eine Zahl abweicht.
+
+**Sprachen:** Deutsch (Standard), Englisch, Italienisch, Französisch; Umschalter im Titel und in der Pause, direkt per `?lang=en`. Vorlesen nimmt die passende Stimme des Geräts; gibt es keine, bleibt der Lautsprecher-Knopf verborgen.
+
+**Vollbild:** beim Start und bei jedem Knopf zurück ins Spiel; Esc oder Android-Zurück verlassen es und pausieren; der Knopf im Pausenmenü verlässt es bis zum nächsten Start. iPhone-Safari kann es nicht, dort hilft „Zum Home-Bildschirm“.
+
 ## Aufbau
 
 ```
-src/body.html  src/style.css  src/game.js   Quellcode
+src/body.html  src/style.css  src/game.js   Quellcode Tauchgang
+src/ext-*.js                                 Seekarte, Landgang, Zeitreise, Zeichnungen, Inhalte
+src/i18n*.js                                 Sprachen, deutscher Text als Schlüssel
+FAKTEN.md                                    Quellen aller Spieltexte
 src/assets/                                  Icons, Manifest, Service Worker, robots.txt
 build.mjs                                    -> public/ (Server) und dist/artifact.html (Einzeldatei)
 nginx/                                       nginx-Konfiguration, CSP und Sicherheits-Header, /health
