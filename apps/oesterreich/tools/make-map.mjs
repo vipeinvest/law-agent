@@ -1,0 +1,86 @@
+#!/usr/bin/env node
+// Builds src/map-data.js from open map data (run once; the result is committed).
+//   npm install world-atlas @svg-maps/austria topojson-client   (in any scratch folder)
+//   NODE_PATH=<scratch>/node_modules node tools/make-map.mjs
+// Sources: country borders – Natural Earth 1:10m via world-atlas (public domain);
+//          federal states – @svg-maps/austria, based on MapSVG (CC BY 4.0), fitted onto the Natural Earth outline.
+import { createRequire } from 'node:module';
+import { writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const require = createRequire(process.env.NODE_PATH ? process.env.NODE_PATH + '/' : import.meta.url);
+const topo = require('topojson-client');
+const world = require('world-atlas/countries-10m.json');
+const svg = (await import(require.resolve('@svg-maps/austria'))).default;
+
+const BOX = { w: 7.6, e: 18.9, s: 45.2, n: 50.4 }; // what the game map shows
+const NAMES = { Austria: 'AT', Germany: 'DE', Czechia: 'CZ', Slovakia: 'SK', Hungary: 'HU', Slovenia: 'SI', Italy: 'IT', Switzerland: 'CH', Liechtenstein: 'LI', Croatia: 'HR', France: 'FR', Poland: 'PL' };
+
+// Douglas-Peucker
+function simplify(pts, eps) {
+  if (pts.length < 3) return pts;
+  const keep = new Uint8Array(pts.length); keep[0] = keep[pts.length - 1] = 1;
+  const stack = [[0, pts.length - 1]];
+  while (stack.length) {
+    const [a, b] = stack.pop(); let max = 0; let idx = -1;
+    const [ax, ay] = pts[a]; const [bx, by] = pts[b]; const dx = bx - ax; const dy = by - ay; const len = Math.hypot(dx, dy);
+    // closed rings start and end on the same point: measure the distance to that point instead of to a line
+    for (let i = a + 1; i < b; i++) { const d = len < 1e-9 ? Math.hypot(pts[i][0] - ax, pts[i][1] - ay) : Math.abs(dy * (pts[i][0] - ax) - dx * (pts[i][1] - ay)) / len; if (d > max) { max = d; idx = i; } }
+    if (max > eps) { keep[idx] = 1; stack.push([a, idx], [idx, b]); }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+const round = (p) => [Math.round(p[0] * 1000) / 1000, Math.round(p[1] * 1000) / 1000];
+const clamp = (p) => [Math.min(BOX.e + 1, Math.max(BOX.w - 1, p[0])), Math.min(BOX.n + 1, Math.max(BOX.s - 1, p[1]))];
+const dedupe = (pts) => pts.filter((p, i) => i === 0 || p[0] !== pts[i - 1][0] || p[1] !== pts[i - 1][1]);
+
+const countries = {};
+let atRing = null;
+for (const f of topo.feature(world, world.objects.countries).features) {
+  const code = NAMES[f.properties.name]; if (!code) continue;
+  const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
+  const rings = [];
+  for (const poly of polys) {
+    const outer = poly[0];
+    if (!outer.some((p) => p[0] > BOX.w - 1 && p[0] < BOX.e + 1 && p[1] > BOX.s - 1 && p[1] < BOX.n + 1)) continue;
+    const r = dedupe(simplify(outer, code === 'AT' || code === 'LI' ? 0.004 : 0.008).map(clamp).map(round));
+    if (r.length > 3) rings.push(r);
+    if (code === 'AT') atRing = outer;
+  }
+  countries[code] = rings;
+}
+
+// Fit the SVG state map (612 x 314, tight around Austria) onto the Natural Earth outline of Austria.
+const lons = atRing.map((p) => p[0]); const lats = atRing.map((p) => p[1]);
+const W = Math.min(...lons); const E = Math.max(...lons); const S = Math.min(...lats); const N = Math.max(...lats);
+const merc = (lat) => Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360));
+const unmerc = (y) => (Math.atan(Math.exp(y)) * 360) / Math.PI - 90;
+const [, , vw, vh] = svg.viewBox.split(' ').map(Number);
+const toLonLat = ([x, y]) => [W + (x / vw) * (E - W), unmerc(merc(N) + (y / vh) * (merc(S) - merc(N)))];
+function parsePath(d) {
+  const rings = []; let cur = null; let x = 0; let y = 0;
+  for (const m of d.matchAll(/([MLlHhVvZz])([^MLlHhVvZz]*)/g)) {
+    const c = m[1]; const n = (m[2].match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
+    if (c === 'M') { cur = []; rings.push(cur); x = n[0]; y = n[1]; cur.push([x, y]); for (let i = 2; i < n.length; i += 2) { x = n[i]; y = n[i + 1]; cur.push([x, y]); } }
+    else if (c === 'L') for (let i = 0; i < n.length; i += 2) { x = n[i]; y = n[i + 1]; cur.push([x, y]); }
+    else if (c === 'l') for (let i = 0; i < n.length; i += 2) { x += n[i]; y += n[i + 1]; cur.push([x, y]); }
+    else if (c === 'H') for (const v of n) { x = v; cur.push([x, y]); }
+    else if (c === 'h') for (const v of n) { x += v; cur.push([x, y]); }
+    else if (c === 'V') for (const v of n) { y = v; cur.push([x, y]); }
+    else if (c === 'v') for (const v of n) { y += v; cur.push([x, y]); }
+  }
+  return rings;
+}
+const STATE = { burgenland: 'B', carinthia: 'K', 'lower-austria': 'N', salzburg: 'S', styria: 'ST', tyrol: 'T', 'upper-austria': 'O', vienna: 'W', vorarlberg: 'V' };
+const states = {};
+for (const loc of svg.locations) {
+  states[STATE[loc.id]] = parsePath(loc.path).map((r) => dedupe(simplify(r.map(toLonLat), 0.004).map(round))).filter((r) => r.length > 3);
+}
+
+const out = `/* Generated by tools/make-map.mjs – do not edit by hand.
+ * Country borders: Natural Earth 1:10m (public domain). Federal states: based on MapSVG via @svg-maps/austria (CC BY 4.0). */
+window.OE_MAP = ${JSON.stringify({ box: BOX, at: { w: W, e: E, s: S, n: N }, countries, states })};
+`;
+const here = dirname(fileURLToPath(import.meta.url));
+writeFileSync(join(here, '..', 'src', 'map-data.js'), out);
+console.log('map-data.js', (out.length / 1024).toFixed(1), 'KB', Object.entries(countries).map(([k, v]) => k + ':' + v.reduce((a, r) => a + r.length, 0)).join(' '), '| states', Object.entries(states).map(([k, v]) => k + ':' + v.reduce((a, r) => a + r.length, 0)).join(' '));

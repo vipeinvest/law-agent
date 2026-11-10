@@ -1,0 +1,48 @@
+# Die große Österreich-Expedition on the MALELU Traefik VPS.
+# Same conventions as businessone/gastromarge: external Traefik network, entrypoint "websecure",
+# Let's Encrypt resolver "letsencrypt", Cloudflare in front. No published ports.
+# Normally started by ops/deploy.sh, which builds the image, sets OESTERREICH_TAG and detects the network.
+name: oesterreich
+services:
+  web:
+    image: oesterreich:${OESTERREICH_TAG:-latest}
+    build:
+      context: .
+      args:
+        GIT_SHA: ${OESTERREICH_TAG:-dev}
+    container_name: oesterreich-web
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    pids_limit: 64
+    networks: [proxy]
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/health']
+      interval: 15s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    labels:
+      traefik.enable: 'true'
+      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik-proxy}
+      traefik.http.routers.oesterreich.rule: Host(`${OESTERREICH_HOST:-oesterreich.malelu.io}`)
+      traefik.http.routers.oesterreich.entrypoints: ${TRAEFIK_ENTRYPOINT:-websecure}
+      traefik.http.routers.oesterreich.tls: 'true'
+      traefik.http.routers.oesterreich.tls.certresolver: ${TRAEFIK_CERTRESOLVER:-letsencrypt}
+      traefik.http.routers.oesterreich.middlewares: oesterreich-compress
+      traefik.http.middlewares.oesterreich-compress.compress: 'true'
+      traefik.http.services.oesterreich.loadbalancer.server.port: '8080'
+      traefik.http.services.oesterreich.loadbalancer.healthcheck.path: /health
+      traefik.http.services.oesterreich.loadbalancer.healthcheck.interval: 15s
+    logging:
+      driver: json-file
+      options: { max-size: '5m', max-file: '3' }
+
+networks:
+  proxy:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik-proxy}

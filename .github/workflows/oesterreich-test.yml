@@ -1,0 +1,47 @@
+name: Oesterreich Test
+# Die große Österreich-Expedition (apps/oesterreich): build, smoke test (phones, tablets, desktop), container build.
+# No deploy from here: on the VPS run apps/oesterreich/ops/deploy.sh (see the README).
+on:
+  push:
+    branches: [main]
+    paths: ['apps/oesterreich/**', '.github/workflows/oesterreich-test.yml']
+  pull_request:
+    paths: ['apps/oesterreich/**', '.github/workflows/oesterreich-test.yml']
+permissions:
+  contents: read
+concurrency:
+  group: oesterreich-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/oesterreich
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build
+        run: node build.mjs --version "${GITHUB_SHA::12}"
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save --no-audit --no-fund playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - name: Smoke test
+        run: node tests/smoke.cjs
+      - name: Build and check the container
+        run: |
+          docker build --build-arg GIT_SHA="${GITHUB_SHA::12}" -t oesterreich:ci .
+          docker run -d --name oe-ci --read-only --tmpfs /tmp:size=16m --cap-drop ALL -p 8080:8080 oesterreich:ci
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8080/health && break; sleep 2; done
+          curl -fsS http://127.0.0.1:8080/health | grep -q '"status":"ok"'
+          node tests/smoke.cjs --url http://127.0.0.1:8080/
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: oesterreich-screenshots
+          path: apps/oesterreich/tests/screenshots
+          retention-days: 14
