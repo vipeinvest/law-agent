@@ -97,6 +97,8 @@ async function dataChecks(page) {
   check('questions for all three levels and all six areas', d.lv.every((n) => n >= 8) && d.areas.every((n) => n >= 6), `${d.nq} questions, levels ${d.lv.join('/')}, areas ${d.areas.join('/')}`);
   check('texts stay short (no fact over 32 words)', d.long === 0, String(d.long));
   check('37 places to discover', d.places === 37);
+  const off = await page.evaluate(() => ['W', 'N', 'O', 'S', 'T', 'V', 'K', 'ST', 'B', 'DE', 'CZ', 'SK', 'HU', 'SI', 'IT', 'CH', 'LI'].filter((k) => !window.__oe.quizPoint(k).inside));
+  check('every name label sits inside its own state or country', off.length === 0, off.join(','));
 }
 
 async function play(browser, base, label, ctxOpts, full) {

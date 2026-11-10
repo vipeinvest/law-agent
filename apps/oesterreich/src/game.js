@@ -1663,20 +1663,12 @@
     stateAt, countryAt,
     teleport(x, y) { state.x = x; state.y = y; cam.x = x; cam.y = y; },
     give(res, n) { state.inv[res] += n; renderBag(); },
-    quizPoint(key) { // screen point inside a state/country on the quiz map, for tap tests
-      const rings = M.states[key] || M.countries[key];
+    quizPoint(key) { // screen point well inside a state or country on the quiz map, for tap tests
       const r = $('quizMap').getBoundingClientRect();
-      const C0 = key === 'LI' ? [9.55, 47.15] : (C.STATES[key] && key !== 'T' ? C.STATES[key].label : null);
-      let lon; let lat;
-      if (C0 && (key === 'LI' || inRings(rings, C0[0], C0[1]))) [lon, lat] = C0;
-      else {
-        const ring = rings.reduce((a, b) => (b.length > a.length ? b : a));
-        const xs = ring.map((q) => q[0]); const ys = ring.map((q) => q[1]);
-        const x0 = Math.max(Math.min(...xs), 9); const x1 = Math.min(Math.max(...xs), 17.5); const y0 = Math.max(Math.min(...ys), 46); const y1 = Math.min(Math.max(...ys), 49.4);
-        for (let i = 0; i < 4000; i++) { lon = x0 + Math.random() * (x1 - x0); lat = y0 + Math.random() * (y1 - y0); if (inRings(rings, lon, lat) && (key === 'AT' || !stateAt(lon, lat) || M.states[key])) break; }
-      }
-      const px = QV.w / 2 + (X(lon) - QV.cx) * QV.s; const py = QV.h / 2 + (Y(lat) - QV.cy) * QV.s;
-      return { x: r.left + (px / QV.w) * r.width, y: r.top + (py / QV.h) * r.height };
+      const [lon, lat] = key === 'LI' ? [9.55, 47.15] : key === 'W' ? [16.37, 48.21] : (C.STATES[key] || C.COUNTRIES[key]).label;
+      const px = QV.w / 2 + (X(lon) - QV.cx) * QV.s;
+      const py = QV.h / 2 + (Y(lat) - QV.cy) * QV.s;
+      return { x: r.left + (px / QV.w) * r.width, y: r.top + (py / QV.h) * r.height, inside: key === 'LI' || inRings(M.states[key] || M.countries[key], lon, lat) };
     },
   };
 })();

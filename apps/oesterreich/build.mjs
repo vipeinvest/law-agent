@@ -31,6 +31,7 @@ writeFileSync(join(pub, 'index.html'), `<!doctype html>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>${TITLE}</title>
 <link rel="stylesheet" href="style.css?v=${hash}">
 </head>
@@ -42,6 +43,7 @@ ${body}
 `);
 writeFileSync(join(pub, 'style.css'), css + '\n');
 writeFileSync(join(pub, 'game.js'), js + '\n');
+writeFileSync(join(pub, 'icon.svg'), '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#c8102e"/><rect y="22" width="64" height="20" fill="#fff"/><path d="M14 46 30 18l8 12 5-7 9 23z" fill="#6f4a28"/><path d="m30 18 5 8-5-2-4 3z" fill="#fff"/></svg>\n');
 writeFileSync(join(pub, 'robots.txt'), 'User-agent: *\nDisallow: /\n');
 writeFileSync(join(pub, 'version.json'), JSON.stringify({ app: 'oesterreich', version, hash }) + '\n');
 mkdirSync(join(here, 'dist'), { recursive: true });
