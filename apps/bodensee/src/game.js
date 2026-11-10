@@ -2194,7 +2194,7 @@
       sub.vx = Math.min(0, sub.vx);
       if (!state.flags.edge) {
         state.flags.edge = true;
-        say('Stopp, Kapitän! Dahinter fällt der See steil ab. An seiner tiefsten Stelle ist der Bodensee 251 Meter tief – zu tief für unser kleines U-Boot.');
+        say(RADIO.tooDeep);
       }
     }
     if (sub.y < 26) { sub.y = 26; sub.vy = Math.max(0, sub.vy); }
@@ -2391,7 +2391,7 @@
     for (const f of BE.seaFinds) {
       if (BE.has(f.id) || Math.abs(sub.x - f.x) > 110 || Math.abs(sub.y - (groundY(f.x) - 16)) > 110) continue;
       BE.collect(f.id);
-      say(_tf('Neu im Forscherbuch: {title}. {text}', { title: _t(f.title), text: _t(f.say) }));
+      say(seaFindLine(f));
     }
   }
 
@@ -2404,26 +2404,26 @@
     const F = state.flags;
     if (!F.dived && m > 4) {
       F.dived = true;
-      say('Super, du tauchst! Siehst du die goldenen Lichter? Das sind meine Logbuch-Seiten. Das Sonar unten links zeigt sie als grüne Punkte.');
+      say(RADIO.diving);
     }
     if (!F.deep && m > 20) {
       F.deep = true;
-      say('Hier unten kommt kaum noch Sonnenlicht an. Darum wachsen keine Pflanzen mehr – die brauchen Licht zum Leben.');
+      say(RADIO.noLight);
     }
     if (F.deep && !F.surfaced && m < 1.2) {
       F.surfaced = true;
-      say('Aufgetaucht! Schau mal nach oben: Hinter dem See siehst du die Berge der Alpen.');
+      say(RADIO.surfaced);
     }
     if (!sub.light && m > 18 && !F.lightHint) {
       F.lightHint = true;
-      say('Es ist ganz schön dunkel hier. Tipp auf „Licht“, dann leuchtet dein Scheinwerfer.');
+      say(RADIO.lamp);
     }
     // idle hint
     if (sub.speed < 8 && !input.active) state.idle += dt;
     else state.idle = 0;
     if (state.idle > 22 && !radio.cur && state.found.length < SITES.length) {
       state.idle = -40;
-      say('Tipp: Drück auf „Ping“. Dann zeigt dir ein grüner Pfeil, wo die nächste Logbuch-Seite liegt.');
+      say(RADIO.ping);
       $('btnPing').classList.add('pulse');
     }
     // scanning pages
@@ -2561,7 +2561,7 @@
   let cardSpeech = '';
   function openCard(s, fresh) {
     cardFromPlay = fresh;
-    cardSpeech = `${_t(s.title)}. ${s.facts.map(_t).join(' ')}`;
+    cardSpeech = siteSpeech(s);
     const n = state.found.indexOf(s.id) + 1;
     $('cardEyebrow').textContent = _tf('Logbuch-Seite {n} von {m} · {depth}', { n, m: SITES.length, depth: depthText(s) });
     $('cardTitle').textContent = _t(s.title);
@@ -2593,19 +2593,14 @@
     }
     setMode('play');
     const nx = nearestUnfound(sub.x, sub.y);
-    if (nx) say(`${_t(s.praise)} ${_t(nx.site.hint)}`.trim());
+    if (nx) say(praiseLine(s, nx.site));
   }
 
   function markSeen(key) {
     state.seen.add(key);
     Sound.bloop();
-    const sp = SPECIES[key];
-    if (!state.flags.fishFirst) {
-      state.flags.fishFirst = true;
-      say(_tf('Schau mal: {name}! Ich trage jeden neuen Fisch in dein Fischbuch ein. Es steckt im Logbuch.', { name: _t(sp.name) }));
-    } else {
-      say(_tf('Neu im Fischbuch: {name}! {fact}', { name: _t(sp.name), fact: _t(sp.fact) }));
-    }
+    say(fishLine(key, !state.flags.fishFirst));
+    state.flags.fishFirst = true;
     saveProgress();
     updateHud(true);
   }
@@ -2656,6 +2651,33 @@
       radio.hold = 0;
     }
   }
+  // Fixed radio messages. Together with the composed ones below they are everything the professor says on the radio,
+  // and speechTexts() lists them all for the recorded narration.
+  const RADIO = {
+    tooDeep: 'Stopp, Kapitän! Dahinter fällt der See steil ab. An seiner tiefsten Stelle ist der Bodensee 251 Meter tief – zu tief für unser kleines U-Boot.',
+    diving: 'Super, du tauchst! Siehst du die goldenen Lichter? Das sind meine Logbuch-Seiten. Das Sonar unten links zeigt sie als grüne Punkte.',
+    noLight: 'Hier unten kommt kaum noch Sonnenlicht an. Darum wachsen keine Pflanzen mehr – die brauchen Licht zum Leben.',
+    surfaced: 'Aufgetaucht! Schau mal nach oben: Hinter dem See siehst du die Berge der Alpen.',
+    lamp: 'Es ist ganz schön dunkel hier. Tipp auf „Licht“, dann leuchtet dein Scheinwerfer.',
+    ping: 'Tipp: Drück auf „Ping“. Dann zeigt dir ein grüner Pfeil, wo die nächste Logbuch-Seite liegt.',
+    allFound: 'Alle Seiten sind gefunden! Das Sonar findet nur noch Fische – erkunde den See, so lange du magst.',
+    welcomeDone: 'Willkommen zurück, Ehren-Seeforscher! Erkunde den See, so lange du magst.',
+    newRound: 'Neue Expedition! Ich habe die fünf Logbuch-Seiten zum Üben wieder im See versteckt. Viel Spaß, Kapitän!',
+  };
+  const praiseLine = (s, next) => `${_t(s.praise)} ${_t(next.hint)}`.trim();
+  const welcomeLine = (left, hint) => _tf(left === 1 ? 'Willkommen zurück, {kapitaen}! Noch eine Seite fehlt. {hint}' : 'Willkommen zurück, {kapitaen}! Noch {n} Seiten fehlen. {hint}', { n: left, kapitaen: captain(), hint: _t(hint) });
+  const fishLine = (key, first) => (first
+    ? _tf('Schau mal: {name}! Ich trage jeden neuen Fisch in dein Fischbuch ein. Es steckt im Logbuch.', { name: _t(SPECIES[key].name) })
+    : _tf('Neu im Fischbuch: {name}! {fact}', { name: _t(SPECIES[key].name), fact: _t(SPECIES[key].fact) }));
+  const missingFishLine = (missing) => (missing > 1
+    ? _tf('Dir fehlen noch {n} Fischarten im Fischbuch. Erkunde den See in Ruhe weiter!', { n: missing })
+    : _t(missing === 1 ? 'Dir fehlt noch eine Fischart im Fischbuch. Erkunde den See in Ruhe weiter!' : 'Du hast alle Fischarten entdeckt! Genieß die Aussicht, Kapitän.'));
+  const seaFindLine = (f) => _tf('Neu im Forscherbuch: {title}. {text}', { title: _t(f.title), text: _t(f.say) });
+  // What the speaker buttons read.
+  const siteSpeech = (s) => `${_t(s.title)}. ${s.facts.map(_t).join(' ')}`;
+  const fishSpeech = (key) => `${_t(SPECIES[key].name)}. ${_t(SPECIES[key].fact)}`;
+  const certSpeech = () => `${document.querySelector('.cert-text').textContent} ${document.querySelector('.cert-title').textContent}.`;
+
   function clearRadio() {
     if (Reader.isActive($('btnRadioSpeak'))) Reader.stop();
     radio.queue.length = 0;
@@ -2944,7 +2966,7 @@
     const nx = nearestUnfound(sub.x, sub.y);
     Sound.ping(nx ? nx.d : 3000);
     if (!nx) {
-      say('Alle Seiten sind gefunden! Das Sonar findet nur noch Fische – erkunde den See, so lange du magst.');
+      say(RADIO.allFound);
       return;
     }
     const dist = _t(nx.d < 450 ? 'ganz nah' : nx.d < 1400 ? 'nah' : nx.d < 3000 ? 'mittel' : 'weit');
@@ -3053,7 +3075,7 @@
         speakBtn.classList.add('fish-speak');
         speakBtn.setAttribute('aria-label', _tf('{name} vorlesen', { name: _t(SPECIES[key].name) }));
         speakBtn.setAttribute('aria-pressed', 'false');
-        speakBtn.addEventListener('click', () => Reader.toggle(`${_t(SPECIES[key].name)}. ${_t(SPECIES[key].fact)}`, speakBtn));
+        speakBtn.addEventListener('click', () => Reader.toggle(fishSpeech(key), speakBtn));
         el.appendChild(speakBtn);
       }
       el.append(b, sm);
@@ -3099,8 +3121,8 @@
     if (fromSave) {
       setMode('play');
       const left = SITES.length - state.found.length;
-      if (left > 0) say(_tf(left === 1 ? 'Willkommen zurück, {kapitaen}! Noch eine Seite fehlt. {hint}' : 'Willkommen zurück, {kapitaen}! Noch {n} Seiten fehlen. {hint}', { n: left, kapitaen: captain(), hint: _t(nearestUnfound(sub.x, sub.y).site.hint) }));
-      else say('Willkommen zurück, Ehren-Seeforscher! Erkunde den See, so lange du magst.');
+      if (left > 0) say(welcomeLine(left, nearestUnfound(sub.x, sub.y).site.hint));
+      else say(RADIO.welcomeDone);
       updateHud(true);
     } else {
       runDialog(INTRO, () => {
@@ -3148,7 +3170,7 @@
     Sound.click();
     resetWorld(true);
     setMode('play');
-    say('Neue Expedition! Ich habe die fünf Logbuch-Seiten zum Üben wieder im See versteckt. Viel Spaß, Kapitän!');
+    say(RADIO.newRound);
     updateHud(true);
   }
 
@@ -3572,10 +3594,13 @@
   })();
 
   // ------------------------------------------------------------------ read aloud
-  // Web Speech API with on-device voices only: no audio files, and no game text leaves the device.
+  // Recorded narration first: every text was spoken once ahead of time by an AI voice (tools/voice.mjs) and comes from
+  // our own server as audio/<set>/<lang>/<key>.mp3, listed in audio/index.json. A text without a recording falls back
+  // to the Web Speech API with on-device voices only, so no game text ever leaves the device.
   const Reader = (() => {
     const synth = window.speechSynthesis;
     const Utterance = window.SpeechSynthesisUtterance;
+    const player = typeof Audio === 'function' ? new Audio() : null;
     const FATAL = ['synthesis-unavailable', 'language-unavailable', 'voice-unavailable'];
     const SPOKEN = {
       de: [[/\bLEO 1\b/g, 'Leo Eins'], [/\bca\.\s*/g, 'circa '], [/(\d)\s?m\b/g, '$1 Meter'], [/\s[–—]\s/g, ', ']],
@@ -3583,14 +3608,48 @@
       it: [[/\bLEO 1\b/g, 'Leo Uno'], [/(\d)\s?m\b/g, '$1 metri'], [/\s[–—]\s/g, ', ']],
       fr: [[/\bLEO 1\b/g, 'Léo Un'], [/(\d)\s?m\b/g, '$1 mètres'], [/\s[–—]\s/g, ', ']],
     };
+    let device = !!(synth && Utterance);
     let voice = null;
+    let recorded = null; // { base, sets: { de: Set of keys } }
     let activeBtn = null;
+    let via = null;
     let run = 0;
+    let fellBack = -1;
     let watchdog = 0;
     let keep = null; // Safari loses utterances without a reference and then never fires onend
 
+    // The recordings are made without the child's name, so "Kapitän Mia" is looked up as plain "Kapitän".
+    function plain(text) {
+      const own = state.name ? text.split(captain()).join(_t('Kapitän')) : text;
+      return own.replace(/\s+/g, ' ').trim();
+    }
+    // FNV-1a of the plain text: speechTexts() hands the same key to tools/voice.mjs, which names the file after it.
+    function key(text) {
+      const s = plain(text);
+      let h = 0x811c9dc5;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 0x01000193);
+      }
+      return (h >>> 0).toString(16).padStart(8, '0');
+    }
+    const spoken = (text) => SPOKEN[I18N.lang].reduce((t, [from, to]) => t.replace(from, to), text);
+    function recording(text) {
+      const set = recorded && recorded.sets[I18N.lang];
+      if (!set) return null;
+      const k = key(text);
+      return set.has(k) ? `${recorded.base}${I18N.lang}/${k}.mp3` : null;
+    }
+    // Speaker buttons show when either the recordings or an on-device voice can read; the AI voice is labelled.
+    function available() {
+      const own = !!(recorded && recorded.sets[I18N.lang] && recorded.sets[I18N.lang].size);
+      document.documentElement.classList.toggle('ai-voice', own);
+      document.documentElement.classList.toggle('no-speech', !own && !voice);
+    }
     function disable() {
-      document.documentElement.classList.add('no-speech');
+      device = false;
+      voice = null;
+      available();
     }
     const langOf = (v) => v.lang.replace('_', '-');
     // Voice names are all that tells them apart: the better engines first, a friendly female voice for the professor, no joke voices.
@@ -3602,51 +3661,75 @@
         - (/grandma|grandpa|eddy|flo\b|reed|rocko|sandy|shelley/i.test(name) ? 8 : 0);
     }
     function pickVoice() {
+      if (!device) return;
       const all = synth.getVoices();
       if (!all.length) return; // the list often arrives later, see voiceschanged
       const own = new RegExp(`^${I18N.lang}(-|$)`, 'i');
       const local = all.filter((v) => own.test(langOf(v)) && v.localService !== false);
       voice = local.sort((a, b) => voiceScore(b) - voiceScore(a))[0] || null;
-      document.documentElement.classList.toggle('no-speech', !voice);
+      available();
+    }
+    function loadRecordings() {
+      if (!player || !window.fetch) return;
+      fetch('audio/index.json', { cache: 'no-cache' })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((idx) => {
+          const set = idx && String(idx.set || '').replace(/[^\w.-]/g, '');
+          if (!set || !idx.keys) return;
+          const sets = {};
+          for (const [lang, keys] of Object.entries(idx.keys)) if (Array.isArray(keys)) sets[lang] = new Set(keys);
+          recorded = { base: `audio/${set}/`, sets };
+          available();
+        })
+        .catch(() => {});
     }
     function init() {
-      if (!synth || !Utterance) {
-        disable();
-        return;
+      if (!device) disable();
+      else {
+        pickVoice();
+        if (synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
       }
-      pickVoice();
-      if (synth.addEventListener) synth.addEventListener('voiceschanged', pickVoice);
+      loadRecordings();
     }
     // Every separate utterance starts after an audible gap, so a text stays in one piece unless it is far longer than any in the game.
     function chunks(text) {
-      const spoken = SPOKEN[I18N.lang].reduce((t, [from, to]) => t.replace(from, to), text);
       const out = [];
-      for (const sentence of spoken.match(/[^.!?]+[.!?]*\s*/g) || [spoken]) {
+      for (const sentence of spoken(text).match(/[^.!?]+[.!?]*\s*/g) || [spoken(text)]) {
         if (out.length && out[out.length - 1].length + sentence.length < 1500) out[out.length - 1] += sentence;
         else out.push(sentence);
       }
       return out.map((s) => s.trim()).filter(Boolean);
     }
+    // Some browsers drop the end event, for example after the page was in the background.
+    function guard(id, ms) {
+      clearTimeout(watchdog);
+      watchdog = setTimeout(() => {
+        if (id === run) stop();
+      }, ms);
+    }
     function release() {
       clearTimeout(watchdog);
       if (activeBtn) activeBtn.setAttribute('aria-pressed', 'false');
       activeBtn = null;
+      via = null;
       Sound.duck(false);
     }
     function stop() {
       run++;
       if (!activeBtn) return;
-      synth.cancel();
+      if (player) player.pause();
+      if (device) synth.cancel();
       release();
     }
-    function speak(text, btn) {
-      if (!synth || !Utterance) return;
-      stop();
-      const id = run;
+    function speakDevice(text, id) {
+      if (id !== run || fellBack === id) return;
+      fellBack = id;
+      via = 'device';
+      if (!device) {
+        release();
+        return;
+      }
       const parts = chunks(text);
-      activeBtn = btn;
-      btn.setAttribute('aria-pressed', 'true');
-      Sound.duck(true);
       if (synth.paused) synth.resume();
       const speakPart = (i) => {
         if (id !== run) return;
@@ -3667,14 +3750,35 @@
           release();
         };
         keep = u;
-        clearTimeout(watchdog);
-        // Some browsers drop onend, for example after the page was in the background.
-        watchdog = setTimeout(() => {
-          if (id === run) stop();
-        }, 5000 + parts[i].length * 150);
+        guard(id, 5000 + parts[i].length * 150);
         synth.speak(u);
       };
       speakPart(0);
+    }
+    // A recording that cannot load or play (offline, blocked) is read by the device voice instead.
+    function playRecording(src, text, id) {
+      via = 'audio';
+      guard(id, 8000 + text.length * 150);
+      player.onended = () => {
+        if (id === run) release();
+      };
+      player.onerror = () => speakDevice(text, id);
+      player.src = src;
+      const p = player.play();
+      if (p && p.catch) p.catch((e) => {
+        if (e && e.name !== 'AbortError') speakDevice(text, id);
+      });
+    }
+    function speak(text, btn) {
+      stop();
+      const src = recording(text);
+      if (!src && !device) return;
+      const id = run;
+      activeBtn = btn;
+      btn.setAttribute('aria-pressed', 'true');
+      Sound.duck(true);
+      if (src) playRecording(src, text, id);
+      else speakDevice(text, id);
     }
     function toggle(text, btn) {
       if (activeBtn === btn) {
@@ -3689,11 +3793,15 @@
       speak,
       toggle,
       stop,
+      plain,
+      key,
+      spoken,
       isActive: (btn) => activeBtn === btn,
+      get status() { return { via, src: via === 'audio' ? player.getAttribute('src') : '', recorded: !!recorded }; },
       relang() {
-        if (!synth || !Utterance) return;
         stop();
         pickVoice();
+        available();
       },
     };
   })();
@@ -4007,17 +4115,14 @@
   });
   bind('btnDialogNext', dialogNext);
   bind('btnDialogSpeak', () => {
-    dialog.read = Reader.toggle(dialog.lines[dialog.i], $('btnDialogSpeak'));
+    dialog.read = Reader.toggle(dialogLine(), $('btnDialogSpeak'));
   });
   bind('btnCardSpeak', () => Reader.toggle(cardSpeech, $('btnCardSpeak')));
   bind('btnCertShare', () => {
     Sound.click();
     shareCertificate();
   });
-  bind('btnEndSpeak', () => {
-    const text = `${document.querySelector('.cert-text').textContent} ${document.querySelector('.cert-title').textContent}.`;
-    Reader.toggle(text, $('btnEndSpeak'));
-  });
+  bind('btnEndSpeak', () => Reader.toggle(certSpeech(), $('btnEndSpeak')));
   $('btnRadioSpeak').addEventListener('click', (e) => {
     e.stopPropagation(); // a tap on the bubble itself skips the message
     if (radio.cur) Reader.toggle(radio.cur.text, $('btnRadioSpeak'));
@@ -4060,8 +4165,7 @@
     Sound.click();
     setMode('play');
     const missing = FISH_ORDER.length - state.seen.size;
-    if (missing > 1) say(_tf('Dir fehlen noch {n} Fischarten im Fischbuch. Erkunde den See in Ruhe weiter!', { n: missing }));
-    else say(missing === 1 ? 'Dir fehlt noch eine Fischart im Fischbuch. Erkunde den See in Ruhe weiter!' : 'Du hast alle Fischarten entdeckt! Genieß die Aussicht, Kapitän.');
+    say(missingFishLine(missing));
   });
   bind('btnNewGame', () => openConfirm('ending'));
   $('radio').addEventListener('click', skipRadio);
@@ -4341,6 +4445,31 @@
     }
   }
 
+  // Everything the reader can be handed, without the child's name: tools/voice-texts.cjs collects it per language
+  // so that tools/voice.mjs can record the narration ahead of time.
+  function speechTexts() {
+    const name = state.name;
+    const certName = $('certName').textContent;
+    state.name = '';
+    $('certName').textContent = captain();
+    try {
+      const out = [...INTRO, ...FINALE].map((l) => _tf(l, { kapitaen: captain() }));
+      out.push(...Object.values(RADIO).map(_t), certSpeech(), ...BE.speechTexts());
+      for (const s of SITES) {
+        out.push(siteSpeech(s), _t(s.hint));
+        for (const next of SITES) if (next !== s) out.push(praiseLine(s, next));
+        for (let left = 1; left <= SITES.length; left++) out.push(welcomeLine(left, s.hint));
+      }
+      for (const k of FISH_ORDER) out.push(fishSpeech(k), fishLine(k, true), fishLine(k, false));
+      for (let n = 0; n <= FISH_ORDER.length; n++) out.push(missingFishLine(n));
+      for (const f of BE.seaFinds) out.push(seaFindLine(f));
+      return [...new Set(out.map(Reader.plain))].map((text) => ({ key: Reader.key(text), text, spoken: Reader.spoken(text) }));
+    } finally {
+      state.name = name;
+      $('certName').textContent = certName;
+    }
+  }
+
   // Small read-only hook for automated smoke tests (no personal data involved).
   window.__bodensee = {
     version: VERSION,
@@ -4355,10 +4484,12 @@
     say,
     ext: BE,
     i18n: I18N,
+    speech: speechTexts,
+    get reading() { return Reader.status; },
     certificate: () => new Promise((r) => makeCertificate().toBlob(r, 'image/png')),
     // Everything the player can read, for the translation checks.
     i18nKeys() {
-      const keys = [...I18N.domKeys($('app')), 'Die große Bodensee-Expedition', ...INTRO, ...FINALE, ...BE.textKeys()];
+      const keys = [...I18N.domKeys($('app')), 'Die große Bodensee-Expedition', ...INTRO, ...FINALE, ...Object.values(RADIO), ...BE.textKeys()];
       for (const s of SITES) keys.push(s.title, ...s.facts, s.praise, s.hint);
       for (const k of FISH_ORDER) keys.push(SPECIES[k].name, SPECIES[k].fact);
       return [...new Set(keys.filter((k) => k && /[A-Za-zÄÖÜäöü]/.test(k)))];

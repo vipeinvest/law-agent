@@ -564,6 +564,8 @@ h1 { margin: 0; display: grid; line-height: 0.95; text-wrap: balance; }
 .speak-btn.paper .ico { fill: var(--ink); }
 .speak-btn.paper .ico .stroke { stroke: var(--ink); }
 .no-speech .speak-btn { display: none; }
+html:not(.ai-voice) .voice-note { display: none; }
+.credit .voice-note::before { content: " · "; }
 
 /* panels */
 .panel-screen { background: rgba(2, 16, 22, 0.62); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }

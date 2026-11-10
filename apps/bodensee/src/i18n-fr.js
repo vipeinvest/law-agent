@@ -79,6 +79,7 @@ I18N.add('fr', {
   "Brigantium wurde ein wichtiges Handels- und Verkehrszentrum.": "Brigantium est devenue un grand centre de commerce et de transport.",
   "ca. {n} m Tiefe": "environ {n} m de profondeur",
   "Created by MALELU AI": "Created by MALELU AI",
+  "Vorlesestimme: KI-generiert": "Voix de lecture : générée par IA",
   "Dafür bekommst du von der Seeforschungsstation eine echte Urkunde. Herzlichen Glückwunsch!": "Pour cela, la station de recherche du lac te remet un vrai diplôme. Toutes mes félicitations !",
   "Dampf und Luftschiffe": "Vapeur et dirigeables",
   "Das Blatt aus dem Kratersee": "La feuille du lac de cratère",

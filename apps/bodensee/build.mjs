@@ -69,6 +69,9 @@ for (const f of readdirSync(assets)) {
   if (f === 'sw.template.js') continue;
   copyFileSync(join(assets, f), join(pub, f));
 }
+// Placeholder for the recorded narration: production mounts the real audio/ folder over it (docker-compose.yml).
+mkdirSync(join(pub, 'audio'), { recursive: true });
+writeFileSync(join(pub, 'audio', 'index.json'), '{}\n');
 const precache = ['./', './index.html', `./style.css?v=${hash}`, `./game.js?v=${hash}`, './manifest.webmanifest', './icon.svg', './apple-touch-icon.png'];
 writeFileSync(
   join(pub, 'sw.js'),

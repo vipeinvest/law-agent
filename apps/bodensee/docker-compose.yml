@@ -15,6 +15,9 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=16m
+    volumes:
+      # Recorded narration (tools/voice.mjs), kept outside the image: about 60 MB that change far less often than the game.
+      - ${BODENSEE_AUDIO_DIR:-/opt/bodensee/audio}:/usr/share/nginx/html/audio:ro
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
     mem_limit: 64m

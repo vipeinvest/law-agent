@@ -21,6 +21,8 @@ self.addEventListener('fetch', (event) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin || url.pathname === '/health') return;
+  // Recordings are large and requested in ranges: the browser cache keeps them, offline the device voice reads.
+  if (url.pathname.startsWith('/audio/')) return;
   event.respondWith(
     fetch(req)
       .then((res) => {

@@ -314,7 +314,7 @@ const BE = (() => {
     });
     $('extInfoClose').addEventListener('click', closeInfo);
     $('extInfoSpeak').addEventListener('click', () => {
-      if (infoItem) api.Reader.toggle(`${_t(infoItem.title)}. ${infoItem.facts.map(_t).join(' ')}`, $('extInfoSpeak'));
+      if (infoItem) api.Reader.toggle(speech(infoItem), $('extInfoSpeak'));
     });
     document.querySelectorAll('.ext-nav button').forEach((b) => b.addEventListener('click', () => {
       api.Sound.click();
@@ -324,6 +324,9 @@ const BE = (() => {
     window.addEventListener('orientationchange', () => setTimeout(resize, 250));
     syncCounts();
   }
+
+  // What the speaker button reads for an info card; speechTexts() in game.js lists it for the recorded narration.
+  const speech = (it) => `${_t(it.title)}. ${it.facts.map(_t).join(' ')}`;
 
   // Everything readable in the trips, for the translation checks.
   function textKeys() {
@@ -339,7 +342,7 @@ const BE = (() => {
   }
 
   return {
-    textKeys, CATS, views, store, def, item: (id) => items.get(id), has, collect, count, total, inCat, rankOf, toast, open, close, show, info, book, init, frame, key, save, resize,
+    textKeys, speech, speechTexts: () => [...items.values()].map(speech), CATS, views, store, def, item: (id) => items.get(id), has, collect, count, total, inCat, rankOf, toast, open, close, show, info, book, init, frame, key, save, resize,
     get api() { return api; },
     get viewId() { return viewId; },
     get size() { return { w: W, h: H }; },

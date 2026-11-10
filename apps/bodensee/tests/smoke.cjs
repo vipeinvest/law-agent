@@ -6,7 +6,7 @@
  *
  *   node tests/smoke.cjs --url http://127.0.0.1:8080/ --allow-http   # the built container
  *
- * Options: --only devices,speech,fullscreen,trips,languages (run parts), --timeout <ms> (slow machines),
+ * Options: --only devices,speech,voice,fullscreen,trips,languages,name (run parts), --timeout <ms> (slow machines),
  *          --shots <dir> (screenshots), --quick (fewer devices), --full (complete play-through on every device)
  * Exit code 0 = all checks passed.
  */
@@ -34,7 +34,7 @@ function nginxHeaders() {
 }
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'application/javascript; charset=utf-8',
-  '.json': 'application/json', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.txt': 'text/plain',
+  '.json': 'application/json', '.mp3': 'audio/mpeg', '.webmanifest': 'application/manifest+json', '.svg': 'image/svg+xml', '.png': 'image/png', '.txt': 'text/plain',
 };
 function serve(dir) {
   const headers = nginxHeaders();
@@ -95,10 +95,10 @@ async function yellowPixelsNear(page, x, y) {
 
 // Poll with page.evaluate (runs over CDP). page.waitForFunction would need 'unsafe-eval', which
 // the production CSP rightly forbids (Playwright <= 1.49 then throws an EvalError immediately).
-async function waitFor(page, fn, timeout = 8000) {
+async function waitFor(page, fn, timeout = 8000, arg) {
   const end = Date.now() + timeout;
   while (Date.now() < end) {
-    if (await page.evaluate(fn).catch(() => false)) return true;
+    if (await page.evaluate(fn, arg).catch(() => false)) return true;
     await sleep(100);
   }
   return false;
@@ -687,6 +687,70 @@ async function nameChecks(browser, base) {
   await linked.close();
 }
 
+// ---------------------------------------------------------------- recorded narration first, the device voice only for the rest
+function silentWav(seconds = 0.4, rate = 8000) {
+  const n = Math.round(seconds * rate) * 2;
+  const b = Buffer.alloc(44 + n);
+  b.write('RIFF', 0);
+  b.writeUInt32LE(36 + n, 4);
+  b.write('WAVEfmt ', 8);
+  b.writeUInt32LE(16, 16);
+  b.writeUInt16LE(1, 20);
+  b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24);
+  b.writeUInt32LE(rate * 2, 28);
+  b.writeUInt16LE(2, 32);
+  b.writeUInt16LE(16, 34);
+  b.write('data', 36);
+  b.writeUInt32LE(n, 40);
+  return b;
+}
+async function voiceChecks(browser, base) {
+  console.log('\n▶ Aufgenommene Stimme');
+  const context = await browser.newContext({ viewport: { width: 1024, height: 700 }, serviceWorkers: 'block' });
+  const page = await context.newPage();
+  await page.addInitScript(() => {
+    Element.prototype.requestFullscreen = () => Promise.reject(new Error('stand-in'));
+    window.__deviceSpoken = 0;
+    if (window.speechSynthesis) window.speechSynthesis.speak = () => { window.__deviceSpoken++; };
+  });
+  await page.goto(base, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title', 30000);
+  check('no AI-voice label without recordings', !(await page.isVisible('.credit .voice-note')));
+  const list = await page.evaluate(() => window.__bodensee.speech());
+  const keys = new Set(list.map((t) => t.key));
+  check('every text the reader can get is listed for recording', list.length > 250 && keys.size === list.length, `${list.length} texts`);
+  check('listed texts carry no placeholder and no name', list.every((t) => !/[{}]/.test(t.text)));
+  check('the spoken form says the boat name in words', list.every((t) => !/LEO 1/.test(t.spoken)));
+  // Stand-in recordings: an index with every German key and a short silent WAV behind each file name.
+  const served = [];
+  const wav = silentWav();
+  await context.route('**/audio/index.json', (r) => r.fulfill({ contentType: 'application/json', body: JSON.stringify({ set: 'test', keys: { de: [...keys] } }) }));
+  await context.route('**/audio/test/**', (r) => {
+    served.push(new URL(r.request().url()).pathname);
+    r.fulfill({ contentType: 'audio/wav', body: wav });
+  });
+  await page.goto(`${base}?name=Mia`, { waitUntil: 'load' });
+  await waitFor(page, () => !!window.__bodensee && window.__bodensee.mode === 'title' && window.__bodensee.reading.recorded, 30000);
+  check('the AI voice is labelled', await page.isVisible('.credit .voice-note'));
+  await page.click('#btnStart');
+  await waitFor(page, () => window.__bodensee.mode === 'dialog', 30000);
+  await page.click('#btnDialogSpeak');
+  const first = list[0].key;
+  const playing = await waitFor(page, (k) => window.__bodensee.reading.via === 'audio' && window.__bodensee.reading.src.endsWith(`/de/${k}.mp3`), 10000, first);
+  check('the greeting with the child\'s name plays the recording made without it', playing, await page.evaluate(() => JSON.stringify(window.__bodensee.reading)));
+  const ended = await waitFor(page, () => window.__bodensee.reading.via === null, 15000);
+  check('the button is released when the recording ends', ended && (await page.getAttribute('#btnDialogSpeak', 'aria-pressed')) === 'false');
+  await clickUntil(page, '#btnDialogNext', async () => (await page.evaluate(() => window.__bodensee.mode)) === 'play', 14);
+  await waitFor(page, () => !document.getElementById('radio').hidden, 30000);
+  await page.click('#btnRadioSpeak');
+  const radio = await waitFor(page, () => window.__bodensee.reading.via === 'audio', 10000);
+  check('a radio message plays its recording', radio, await page.textContent('#radioText'));
+  check('the recordings come from our own server', served.length >= 2 && served.every((p) => /^\/audio\/test\/de\/[0-9a-f]{8}\.mp3$/.test(p)), served.join(' '));
+  check('no device voice was needed', (await page.evaluate(() => window.__deviceSpoken)) === 0);
+  await context.close();
+}
+
 // ---------------------------------------------------------------- remote-only checks
 async function remoteChecks(base) {
   console.log(`\n▶ HTTP checks ${base}`);
@@ -716,7 +780,7 @@ async function remoteChecks(base) {
     await remoteChecks(base);
   }
   const browser = await chromium.launch(process.env.PW_EXECUTABLE ? { executablePath: process.env.PW_EXECUTABLE } : {});
-  const parts = opt('--only', 'devices,speech,fullscreen,trips,languages,name').split(',');
+  const parts = opt('--only', 'devices,speech,voice,fullscreen,trips,languages,name').split(',');
   const timeout = Number(opt('--timeout', 30000));
   const plainContext = browser.newContext.bind(browser);
   browser.newContext = async (o) => {
@@ -750,6 +814,11 @@ async function remoteChecks(base) {
     await speechFlow(browser, base);
   } catch (e) {
     check('speech flow run completed', false, e.message.split('\n')[0]);
+  }
+  if (parts.includes('voice')) try {
+    await voiceChecks(browser, base);
+  } catch (e) {
+    check('recorded voice run completed', false, e.message.split('\n')[0]);
   }
   if (parts.includes('fullscreen')) try {
     await fullscreenChecks(browser, base);

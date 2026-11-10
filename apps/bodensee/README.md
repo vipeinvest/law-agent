@@ -4,7 +4,7 @@ Ein ruhiges Unterwasser-Forschungsspiel für Kinder, ursprünglich für Leopold 
 
 - **Ziel-URL:** https://bodensee.malelu.io (MALELU Traefik-VPS, Docker, Cloudflare)
 - **Läuft auf:** iPhone und iPad (Safari, hoch und quer), Android, Desktop – ohne App-Download. Über „Zum Home-Bildschirm“ als Vollbild-App mit Offline-Modus.
-- **Datenschutz:** keine Tracker, keine Drittanbieter-Requests, keine personenbezogenen Daten. Gespeichert wird nur der Spielstand lokal im Browser (`localStorage`). Das Vorlesen nutzt nur Stimmen auf dem Gerät; ohne deutsche Gerätestimme bleibt der Lautsprecher-Knopf ausgeblendet.
+- **Datenschutz:** keine Tracker, keine Drittanbieter-Requests, keine personenbezogenen Daten. Gespeichert wird nur der Spielstand lokal im Browser (`localStorage`). Vorgelesen wird mit vorab aufgenommenen Tondateien von unserem eigenen Server (siehe „Vorlesestimme“); was keine Aufnahme hat, liest die Stimme des Geräts. Beim Spielen geht kein Text an fremde Dienste.
 
 ## Spielinhalt
 
@@ -32,11 +32,31 @@ Alle Fundorte sind im Spiel ausdrücklich als **nicht maßstabsgetreu** gekennze
 
 Alle Aussagen mit Quelle: `FAKTEN.md`. Bei Änderungen am deutschen Text immer die Sprachdateien mitziehen, der deutsche Satz ist der Schlüssel; `tests/smoke.cjs` bricht ab, wenn eine Übersetzung fehlt oder eine Zahl abweicht.
 
-**Sprachen:** Deutsch (Standard), Englisch, Italienisch, Französisch; Umschalter im Titel und in der Pause, direkt per `?lang=en`. Vorlesen nimmt die passende Stimme des Geräts; gibt es keine, bleibt der Lautsprecher-Knopf verborgen.
+**Sprachen:** Deutsch (Standard), Englisch, Italienisch, Französisch; Umschalter im Titel und in der Pause, direkt per `?lang=en`. Vorlesen nimmt die Aufnahme der jeweiligen Sprache, sonst die passende Stimme des Geräts; gibt es beides nicht, bleibt der Lautsprecher-Knopf verborgen.
 
 **Name:** Kinder können am Anfang ihren Namen eintragen, er bleibt nur im Browser. Ein Familienlink wie `?name=Leopold` trägt ihn einmal ein. Am Ende lässt sich die Urkunde als Bild speichern oder über das Teilen-Menü des Geräts verschicken, ohne dass eine Adresse über den Server läuft.
 
 **Vollbild:** beim Start und bei jedem Knopf zurück ins Spiel; Esc oder Android-Zurück verlassen es und pausieren; der Knopf im Pausenmenü verlässt es bis zum nächsten Start. iPhone-Safari kann es nicht, dort hilft „Zum Home-Bildschirm“.
+
+## Vorlesestimme
+
+Gerätestimmen klingen oft nach Roboter. Deshalb wird jeder Text einmal vorab mit einer KI-Stimme (OpenAI `gpt-4o-mini-tts`, Stimme „marin“) aufgenommen. Die Dateien liegen auf dem VPS unter `/opt/bodensee/audio` und werden schreibgeschützt in den Container gehängt (`docker-compose.yml`), sie sind also nicht Teil des Images und nicht im Repo.
+
+- `audio/index.json` nennt den Satz (`set`) und je Sprache die vorhandenen Schlüssel; die Datei heißt `audio/<set>/<lang>/<schlüssel>.mp3`. Der Schlüssel ist ein FNV-1a-Wert des angezeigten Texts ohne den Namen des Kindes („Kapitän Mia“ wird als „Kapitän“ nachgeschlagen).
+- Fehlt eine Aufnahme, etwa nach einer Textänderung, liest die Gerätestimme. Fehlt der ganze Ordner, antwortet nginx mit einem leeren Index.
+- Sobald Aufnahmen da sind, steht im Titel und in der Pause „Vorlesestimme: KI-generiert“. Das verlangen die Nutzungsregeln von OpenAI, und es gehört zur KI-Kennzeichnung.
+
+Neu aufnehmen, zum Beispiel nach Textänderungen (bestehende Dateien bleiben, nur Neues kostet):
+
+```bash
+node build.mjs
+node tools/voice-texts.cjs --out dist/voice/texts.json      # alle Sprechtexte je Sprache, aus dem laufenden Spiel
+node tools/voice.mjs --texts dist/voice/texts.json --out dist/audio --key-file <Datei mit OPENAI_API_KEY=...> --ffmpeg <ffmpeg>
+node tools/voice.mjs ... --samples marin,coral,sage --lang de   # nur Hörproben zum Vergleichen
+scp -r dist/audio/<set> root@<vps>:/opt/bodensee/audio/ && scp dist/audio/index.json root@<vps>:/opt/bodensee/audio/
+```
+
+Die `index.json` zuletzt hochladen, damit sie nie auf Dateien zeigt, die noch fehlen. Eine neue Stimme bekommt einen neuen `--set`, weil die Tondateien 30 Tage im Browser-Cache bleiben. OpenAI schaltet `gpt-4o-mini-tts` laut eigener Doku am 06.01.2027 ab: Fertige Aufnahmen bleiben, für Nachaufnahmen danach braucht `tools/voice.mjs` ein anderes Modell oder einen anderen Dienst.
 
 ## Aufbau
 
@@ -51,6 +71,7 @@ nginx/                                       nginx-Konfiguration, CSP und Sicher
 Dockerfile  docker-compose.yml               Container (nginx-unprivileged, read-only, ohne Capabilities)
 ops/deploy.sh  ops/rollback.sh               Deploy mit automatischem Rollback / manuelles Rollback
 tests/smoke.cjs                              Playwright-Smoke-Test (iPhone, iPad, Desktop)
+tools/voice-texts.cjs  tools/voice.mjs       Vorlesestimme: Sprechtexte sammeln, aufnehmen
 ```
 
 ## Lokal entwickeln und testen

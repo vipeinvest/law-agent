@@ -24,7 +24,7 @@ TAG="$(printf '%s' "$TAG" | tr -cd 'A-Za-z0-9._-' | cut -c1-40)"
 [ -n "$TAG" ] || { echo "invalid tag" >&2; exit 2; }
 
 log() { printf '[bodensee %s] %s\n' "$(date +%H:%M:%S)" "$*"; }
-mkdir -p "$BASE"
+mkdir -p "$BASE" "$BASE/audio" # audio: recorded narration, mounted into the container (docker-compose.yml)
 
 command -v docker >/dev/null || { log "docker not found – abort, nothing changed"; exit 2; }
 docker compose version >/dev/null 2>&1 || { log "docker compose plugin not found – abort, nothing changed"; exit 2; }
