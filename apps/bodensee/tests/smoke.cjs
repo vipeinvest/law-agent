@@ -126,6 +126,19 @@ async function runDevice(browser, base, label, ctxOpts, full) {
   await page.addInitScript(() => {
     // Fullscreen has its own checks below; here a refusal keeps the page size of the emulated device.
     Element.prototype.requestFullscreen = () => Promise.reject(new Error('stand-in'));
+    // The speaker buttons only show when something can read (recordings or an on-device voice), so the
+    // device runs bring a German on-device voice. The real SpeechSynthesisUtterance would refuse it as
+    // u.voice, because it only takes real SpeechSynthesisVoice objects.
+    window.SpeechSynthesisUtterance = class {
+      constructor(text) {
+        this.text = text;
+        this.voice = null;
+        this.lang = '';
+        this.rate = 1;
+        this.pitch = 1;
+      }
+    };
+    window.speechSynthesis.getVoices = () => [{ lang: 'de-DE', name: 'Anna', localService: true }];
     window.__spoken = [];
     let current = null;
     window.speechSynthesis.speak = (u) => {
