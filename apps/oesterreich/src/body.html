@@ -1,0 +1,207 @@
+<div id="app">
+  <canvas id="scene" aria-label="Landkarte von Österreich mit deiner Forscherfigur"></canvas>
+
+  <div id="hud" class="hud" hidden>
+    <div class="hud-top">
+      <div class="where" aria-live="polite">
+        <span class="where-label">Du bist in</span>
+        <b id="whereName">Wien</b>
+      </div>
+      <div class="hud-right">
+        <button id="btnBook" class="chip" type="button" aria-label="Forscherheft öffnen">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/></svg>
+          <span id="bookCount">0/37</span>
+        </button>
+        <button id="btnSound" class="round" type="button" aria-label="Ton ausschalten" aria-pressed="true">
+          <svg class="on" viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+          <svg class="off" viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+        </button>
+        <button id="btnPause" class="round" type="button" aria-label="Pause">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M7 5h3v14H7zM14 5h3v14h-3z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="quest" class="quest">
+      <canvas id="compass" width="120" height="120" aria-hidden="true"></canvas>
+      <div class="quest-text">
+        <span class="quest-label">Auftrag</span>
+        <p id="questText" aria-live="polite"></p>
+      </div>
+    </div>
+
+    <div id="bag" class="bag" aria-label="Rucksack"></div>
+
+    <div class="hud-bottom">
+      <div class="scale" aria-hidden="true"><i id="scaleBar"></i><span>50 km</span></div>
+      <button id="btnMap" class="chip" type="button">Karte</button>
+      <button id="btnAct" class="act" type="button" hidden></button>
+    </div>
+
+    <div id="toast" class="toast" hidden role="status"></div>
+    <div id="hint" class="hint" hidden>
+      <div class="finger"></div>
+      <p>Halte den Finger auf die Karte.<br>Deine Figur läuft dorthin.</p>
+    </div>
+  </div>
+
+  <!-- Titel -->
+  <section id="title" class="screen title-screen" aria-labelledby="titleHead">
+    <div class="title-card">
+      <p class="eyebrow">Sachunterricht zum Anfassen</p>
+      <h1 id="titleHead"><span>Die große</span>Österreich-Expedition</h1>
+      <p class="lead">Erkunde alle neun Bundesländer, sammle Holz, Stein und Salz und baue die Wahrzeichen der Hauptstädte.</p>
+      <div class="pick" role="radiogroup" aria-label="Schulstufe">
+        <span class="pick-label">Ich gehe in die</span>
+        <button class="seg" type="button" role="radio" data-level="1" aria-checked="false">2.–3. Klasse</button>
+        <button class="seg" type="button" role="radio" data-level="2" aria-checked="true">4. Klasse</button>
+        <button class="seg" type="button" role="radio" data-level="3" aria-checked="false">5.–6. Klasse</button>
+      </div>
+      <div class="title-actions">
+        <button id="btnContinue" class="btn primary" type="button" hidden>Weiterspielen</button>
+        <button id="btnStart" class="btn primary" type="button">Expedition starten</button>
+      </div>
+      <p class="fine">Keine Werbung · keine Datensammlung · der Spielstand bleibt auf diesem Gerät</p>
+    </div>
+  </section>
+
+  <!-- Erklärung durch Muri -->
+  <section id="talk" class="screen talk-screen" hidden>
+    <div class="talk-box">
+      <canvas class="muri" width="120" height="120" aria-hidden="true"></canvas>
+      <div class="talk-body">
+        <b class="who">Muri, das Murmeltier</b>
+        <p id="talkText" aria-live="polite"></p>
+        <div class="talk-foot">
+          <button id="btnTalkSpeak" class="speak" type="button" aria-label="Vorlesen" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+          <button id="btnTalkNext" class="btn primary small" type="button">Weiter</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Entdeckungskarte -->
+  <section id="card" class="screen sheet-screen" hidden aria-labelledby="cardTitle">
+    <article class="sheet">
+      <p class="sheet-eyebrow" id="cardEyebrow"></p>
+      <div class="sheet-head">
+        <h2 id="cardTitle"></h2>
+        <button id="btnCardSpeak" class="speak dark" type="button" aria-label="Vorlesen" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+      </div>
+      <canvas id="cardArt" class="sheet-art" width="560" height="260" aria-hidden="true"></canvas>
+      <ul id="cardFacts" class="facts"></ul>
+      <button id="btnCardClose" class="btn primary" type="button">Weiter</button>
+    </article>
+  </section>
+
+  <!-- Wissensfrage -->
+  <section id="quiz" class="screen sheet-screen" hidden aria-labelledby="quizQ">
+    <article class="sheet quiz">
+      <p class="sheet-eyebrow" id="quizEyebrow">Wissensfrage</p>
+      <div class="sheet-head">
+        <h2 id="quizQ"></h2>
+        <button id="btnQuizSpeak" class="speak dark" type="button" aria-label="Vorlesen" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="f" d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg></button>
+      </div>
+      <canvas id="quizMap" class="quiz-map" width="640" height="340" hidden aria-label="Karte zum Antippen"></canvas>
+      <div id="quizOpts" class="opts"></div>
+      <p id="quizFb" class="fb" hidden aria-live="polite"></p>
+      <button id="btnQuizNext" class="btn primary" type="button" hidden>Weiter</button>
+    </article>
+  </section>
+
+  <!-- Bauen -->
+  <section id="build" class="screen sheet-screen" hidden aria-labelledby="buildTitle">
+    <article class="sheet">
+      <p class="sheet-eyebrow" id="buildEyebrow">Baustelle</p>
+      <h2 id="buildTitle"></h2>
+      <canvas id="buildArt" class="build-art" width="360" height="420" aria-hidden="true"></canvas>
+      <div id="buildNeed" class="need"></div>
+      <p id="buildWhy" class="why"></p>
+      <div class="row">
+        <button id="btnBuildGo" class="btn primary" type="button">Bauen</button>
+        <button id="btnBuildClose" class="btn" type="button">Später</button>
+      </div>
+    </article>
+  </section>
+
+  <!-- Forscherheft -->
+  <section id="book" class="screen sheet-screen" hidden aria-labelledby="bookHead">
+    <article class="sheet wide">
+      <div class="sheet-head">
+        <h2 id="bookHead">Forscherheft</h2>
+        <button id="btnBookClose" class="round dark" type="button" aria-label="Schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="tab" type="button" role="tab" data-tab="laender" aria-selected="true">Bundesländer</button>
+        <button class="tab" type="button" role="tab" data-tab="nachbarn" aria-selected="false">Nachbarländer</button>
+        <button class="tab" type="button" role="tab" data-tab="orte" aria-selected="false">Orte</button>
+        <button class="tab" type="button" role="tab" data-tab="wissen" aria-selected="false">Mein Wissen</button>
+      </div>
+      <div id="bookBody" class="book-body"></div>
+    </article>
+  </section>
+
+  <!-- Übersichtskarte -->
+  <section id="map" class="screen map-screen" hidden aria-labelledby="mapHead">
+    <div class="map-top">
+      <h2 id="mapHead">Österreich und seine Nachbarn</h2>
+      <button id="btnMapClose" class="round" type="button" aria-label="Karte schließen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <canvas id="mapCanvas" aria-label="Übersichtskarte"></canvas>
+    <ul class="legend" aria-label="Legende">
+      <li><i class="lg star"></i>Landeshauptstadt</li>
+      <li><i class="lg dot"></i>entdeckter Ort</li>
+      <li><i class="lg q"></i>noch unbekannt</li>
+      <li><i class="lg river"></i>Fluss</li>
+      <li><i class="lg me"></i>du</li>
+    </ul>
+  </section>
+
+  <!-- Pause -->
+  <section id="pause" class="screen sheet-screen" hidden aria-labelledby="pauseHead">
+    <article class="sheet narrow">
+      <h2 id="pauseHead">Pause</h2>
+      <div class="col">
+        <button id="btnResume" class="btn primary" type="button">Weiterspielen</button>
+        <button id="btnRestart" class="btn" type="button">Neue Expedition</button>
+      </div>
+      <div class="pick" role="radiogroup" aria-label="Schulstufe">
+        <span class="pick-label">Schulstufe</span>
+        <button class="seg" type="button" role="radio" data-level="1" aria-checked="false">2.–3.</button>
+        <button class="seg" type="button" role="radio" data-level="2" aria-checked="true">4.</button>
+        <button class="seg" type="button" role="radio" data-level="3" aria-checked="false">5.–6.</button>
+      </div>
+      <p class="fine">Kartendaten: Natural Earth · Bundesländer nach MapSVG (CC BY 4.0)</p>
+    </article>
+  </section>
+
+  <section id="confirm" class="screen sheet-screen" hidden aria-labelledby="confirmHead">
+    <article class="sheet narrow">
+      <h2 id="confirmHead">Neue Expedition?</h2>
+      <p>Alle Bauwerke, Stempel und Rohstoffe werden zurückgesetzt.</p>
+      <div class="row">
+        <button id="btnConfirmYes" class="btn primary" type="button">Ja, neu starten</button>
+        <button id="btnConfirmNo" class="btn" type="button">Nein, zurück</button>
+      </div>
+    </article>
+  </section>
+
+  <!-- Urkunde -->
+  <section id="end" class="screen sheet-screen" hidden aria-labelledby="endHead">
+    <article class="sheet cert">
+      <p class="sheet-eyebrow">Forschungsstation Österreich</p>
+      <h2 id="endHead">Urkunde</h2>
+      <p>Du hast alle neun Wahrzeichen gebaut und alle acht Nachbarländer besucht. Ab heute bist du</p>
+      <p class="cert-title">Österreich-Profi</p>
+      <dl class="stats">
+        <div><dt>Orte entdeckt</dt><dd id="statPlaces"></dd></div>
+        <div><dt>Fragen gewusst</dt><dd id="statQuiz"></dd></div>
+        <div><dt>Spielzeit</dt><dd id="statTime"></dd></div>
+      </dl>
+      <div class="row">
+        <button id="btnEndGo" class="btn primary" type="button">Weiter erkunden</button>
+      </div>
+    </article>
+  </section>
+  <noscript><p class="noscript">Bitte JavaScript aktivieren, um die Expedition zu starten.</p></noscript>
+</div>
