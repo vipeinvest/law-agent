@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { org?
   const db = await getDb();
   const org = searchParams.org ? await getOrgBySlug(db, searchParams.org) : null;
   const theme = org ? orgTheme(org) : DEFAULT_THEME;
-  const name = org?.theme?.appName || org?.name || 'Zeitly';
+  const name = org?.theme?.appName || org?.name || 'Fairhours';
   let demoAccounts: Array<{ email: string; name: string; role: string; org: string }> = [];
   if (env.demo) {
     const { rows } = await db.query<{ email: string; name: string; role: string; org: string }>(`select u.email, u.name, u.role, o.name as org from zt_users u join zt_orgs o on o.id = u.org_id where u.active order by o.name, u.role, u.name`);
@@ -43,7 +43,7 @@ export default async function LoginPage({ searchParams }: { searchParams: { org?
           <Link href="/impressum" className="underline">
             Impressum
           </Link>
-          {!org && <span> · Zeitly by MALELU</span>}
+          {!org && <span> · Fairhours by MALELU</span>}
         </p>
       </div>
     </main>

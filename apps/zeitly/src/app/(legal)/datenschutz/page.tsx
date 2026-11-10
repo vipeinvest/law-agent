@@ -8,7 +8,7 @@ export default function DatenschutzPage() {
     <>
       <h1>Datenschutzinformation</h1>
       <p>
-        Diese Anwendung („Zeitly“) wird von <strong>{env.operatorName}</strong>, {env.operatorAddress}, E-Mail <a href={`mailto:${env.operatorEmail}`}>{env.operatorEmail}</a>, als <strong>Auftragsverarbeiter</strong> betrieben. <strong>Verantwortlicher</strong> im Sinne der DSGVO für die Verarbeitung der Arbeitszeitdaten ist der jeweilige Arbeitgeber (der Betrieb, der Sie zur Nutzung eingeladen hat). Ihre vollständige Datenschutzinformation nach Art. 13 DSGVO erhalten Sie von Ihrem Arbeitgeber; diese Seite fasst zusammen, was in der App passiert.
+        Diese Anwendung („Fairhours“) wird von <strong>{env.operatorName}</strong>, {env.operatorAddress}, E-Mail <a href={`mailto:${env.operatorEmail}`}>{env.operatorEmail}</a>, als <strong>Auftragsverarbeiter</strong> betrieben. <strong>Verantwortlicher</strong> im Sinne der DSGVO für die Verarbeitung der Arbeitszeitdaten ist der jeweilige Arbeitgeber (der Betrieb, der Sie zur Nutzung eingeladen hat). Ihre vollständige Datenschutzinformation nach Art. 13 DSGVO erhalten Sie von Ihrem Arbeitgeber; diese Seite fasst zusammen, was in der App passiert.
       </p>
       <h2>Welche Daten verarbeitet werden</h2>
       <ul>
@@ -72,7 +72,7 @@ export default function DatenschutzPage() {
         Sie haben das Recht auf Auskunft, Berichtigung, Löschung (soweit keine Aufbewahrungspflicht besteht), Einschränkung, Datenübertragbarkeit und Widerspruch. Ihre Aufzeichnungen können Sie jederzeit selbst unter „Profil“ herunterladen (§ 26 Abs 8 AZG, Art. 15/20 DSGVO). Beschwerden richten Sie an Ihren Arbeitgeber oder an die österreichische Datenschutzbehörde, Barichgasse 40–42, 1030 Wien, <a href="https://www.dsb.gv.at">dsb.gv.at</a>.
       </p>
       <h2>Cookies und lokale Speicherung</h2>
-      <p>Zeitly verwendet ausschließlich ein technisch notwendiges Sitzungs-Cookie (Anmeldung) sowie lokalen Speicher im Browser für die Offline-Funktion der Stempeluhr (Buchungen werden zwischengespeichert, bis wieder Verbindung besteht). Es gibt kein Tracking, keine Werbung und keine Analyse-Cookies.</p>
+      <p>Fairhours verwendet ausschließlich ein technisch notwendiges Sitzungs-Cookie (Anmeldung) sowie lokalen Speicher im Browser für die Offline-Funktion der Stempeluhr (Buchungen werden zwischengespeichert, bis wieder Verbindung besteht). Es gibt kein Tracking, keine Werbung und keine Analyse-Cookies.</p>
       <p className="text-muted text-sm">Stand: {new Date().toLocaleDateString('de-AT', { month: 'long', year: 'numeric' })}</p>
     </>
   );

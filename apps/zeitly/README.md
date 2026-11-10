@@ -1,10 +1,12 @@
-# Zeitly – Arbeitszeiterfassung für Österreich
+# Fairhours – Arbeitszeiterfassung für Österreich
 
-Zeitly ist eine schlanke, mobile-first Web-App (PWA) für die gesetzeskonforme Arbeitszeiterfassung österreichischer KMU – gebaut für Teams, die remote, im Büro und im Außendienst arbeiten, und für Steuerberater:innen, die am Monatsende saubere Daten statt loser Excel-Tabellen wollen.
+> **Name:** Fairhours ist der internationale Produktname (Arbeitstitel bis 10.11.2026: „Zeitly“). Interne Bezeichner bleiben bewusst unverändert: Ordner `apps/zeitly`, Tabellen-Präfix `zt_`, Umgebungsvariablen `ZEITLY_*`, Workflows `zeitly-*.yml`. Marken- und Domainprüfung für „Fairhours“ steht noch aus.
 
-**Live (Pilot):** https://zeitly.malelu.io · **Demo:** `pnpm dev:demo` → http://localhost:3100 (Demo-Konten auf der Login-Seite)
+Fairhours ist eine schlanke, mobile-first Web-App (PWA) für die gesetzeskonforme Arbeitszeiterfassung österreichischer KMU – gebaut für Teams, die remote, im Büro und im Außendienst arbeiten, und für Steuerberater:innen, die am Monatsende saubere Daten statt loser Excel-Tabellen wollen.
 
-## Was Zeitly kann
+**Live (Pilot):** https://fairhours.malelu.io · **Demo:** `pnpm dev:demo` → http://localhost:3100 (Demo-Konten auf der Login-Seite)
+
+## Was Fairhours kann
 
 - **Stempeluhr** mit Start/Pause/Stopp, Arbeitsort (Büro · Telearbeit · Außendienst), Reisezeit, Projekt/Kostenstelle, Notiz – offline-fähig, Nachbuchung per Tag/Woche.
 - **AZG-Prüfregeln live und im Monat:** 12 h/60 h Höchstgrenzen, Ø 48 h/17 Wochen, Ruhepause ab 6 h, 11 h Ruhezeit, 36 h Wochenendruhe, Sonn-/Feiertags- und Nachtarbeit, Überlappungen, offene Buchungen. Jede Meldung mit Paragraph.
@@ -48,4 +50,4 @@ e2e/, tests/    Playwright, vitest
 
 ## Rechtlicher Hinweis
 
-Zeitly unterstützt den Arbeitgeber bei der Aufzeichnungspflicht nach § 26 AZG und zeigt Abweichungen von den gesetzlichen Grenzen. Die Verantwortung für die Einhaltung des Arbeitszeitrechts und die Bewertung von Zuschlägen (Kollektivvertrag) bleibt beim Arbeitgeber bzw. der Lohnverrechnung.
+Fairhours unterstützt den Arbeitgeber bei der Aufzeichnungspflicht nach § 26 AZG und zeigt Abweichungen von den gesetzlichen Grenzen. Die Verantwortung für die Einhaltung des Arbeitszeitrechts und die Bewertung von Zuschlägen (Kollektivvertrag) bleibt beim Arbeitgeber bzw. der Lohnverrechnung.

@@ -7,7 +7,7 @@ export default function LegalLayout({ children }: { children: ReactNode }) {
       <header className="border-b border-line bg-card">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold">
-            Zeitly
+            Fairhours
           </Link>
           <nav className="text-sm flex gap-4 text-muted">
             <Link href="/datenschutz">Datenschutz</Link>

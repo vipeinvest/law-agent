@@ -10,7 +10,7 @@ import { hoursDecimal } from '@/lib/export/common';
 export const dynamic = 'force-dynamic';
 
 /**
- * Zeitly Public API v1 (read-only) for payroll/accounting systems.
+ * Fairhours Public API v1 (read-only) for payroll/accounting systems.
  *   GET /api/v1/employees                         scope read:employees
  *   GET /api/v1/employees/{id}/profile            scope read:profiles   (onboarding master data)
  *   GET /api/v1/time-entries?from&to[&userId]     scope read:time

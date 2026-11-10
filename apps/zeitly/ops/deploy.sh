@@ -10,5 +10,5 @@ docker compose up -d --no-deps --scale web=2 web
 docker compose up -d cron
 sleep 5
 docker compose ps
-curl -fsS "https://${ZEITLY_HOST:-zeitly.malelu.io}/api/health" && echo && echo "deploy $GIT_SHA ok"
+curl -fsS "https://${ZEITLY_HOST:-fairhours.malelu.io}/api/health" && echo && echo "deploy $GIT_SHA ok"
 docker image prune -f >/dev/null

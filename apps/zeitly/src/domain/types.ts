@@ -1,5 +1,5 @@
 /**
- * Zeitly domain types – shared between rules engine, DB layer and UI.
+ * Fairhours domain types – shared between rules engine, DB layer and UI.
  * All durations are integer minutes. Dates are ISO calendar dates (YYYY-MM-DD) in the
  * organisation's time zone (Europe/Vienna); instants are ISO-8601 strings in UTC.
  */

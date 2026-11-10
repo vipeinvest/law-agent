@@ -1,4 +1,4 @@
-# Zeitly on the MALELU Traefik VPS.
+# Fairhours on the MALELU Traefik VPS.
 # Prerequisites: external docker network "traefik" with a Traefik v2/v3 instance that has the
 # entrypoint "websecure" and a Let's Encrypt resolver named "letsencrypt" (same as hoststatement/fibuly).
 # Usage: cp .env.example .env && edit; docker compose up -d --build --scale web=2
@@ -32,7 +32,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.docker.network=traefik
-      - traefik.http.routers.zeitly.rule=Host(`${ZEITLY_HOST:-zeitly.malelu.io}`)
+      - traefik.http.routers.zeitly.rule=Host(`${ZEITLY_HOST:-fairhours.malelu.io}`)
       - traefik.http.routers.zeitly.entrypoints=websecure
       - traefik.http.routers.zeitly.tls=true
       - traefik.http.routers.zeitly.tls.certresolver=letsencrypt

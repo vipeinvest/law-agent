@@ -156,7 +156,7 @@ export async function seedDemo(db: Db): Promise<void> {
     });
     await insertUser(c, malelu, { email: 'office@malelu.io', name: 'Peter Vitzthum', role: 'owner', personnelNo: 'ML-001', employment: { weeklyMinutes: 2400, workDays: [1, 2, 3, 4, 5], recordMode: 'duration_only', gleitzeit: true }, profile: 'none' });
     await insertUser(c, malelu, { email: 'vipeinvestag@gmail.com', name: 'Peter Vitzthum (privat)', role: 'admin', personnelNo: 'ML-002', employment: { weeklyMinutes: 2400, workDays: [1, 2, 3, 4, 5], recordMode: 'duration_only', gleitzeit: true }, profile: 'none' });
-    await c.query(`insert into zt_projects (org_id, code, name, cost_center, color, billable) values ($1,'KOMPAGNON','KOMPΛGNON','KST-10','#0f172a',true), ($1,'CLAIMLY','Claimly','KST-20','#10b981',true), ($1,'ZEITLY','Zeitly','KST-30','#1f5f5b',false), ($1,'INTERN','Intern / Admin','KST-90','#6b7280',false)`, [malelu]);
+    await c.query(`insert into zt_projects (org_id, code, name, cost_center, color, billable) values ($1,'KOMPAGNON','KOMPΛGNON','KST-10','#0f172a',true), ($1,'CLAIMLY','Claimly','KST-20','#10b981',true), ($1,'FAIRHOURS','Fairhours','KST-30','#1f5f5b',false), ($1,'INTERN','Intern / Admin','KST-90','#6b7280',false)`, [malelu]);
   });
   console.info('[seed] demo data created');
 }

@@ -2,10 +2,10 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Zeitly', template: '%s · Zeitly' },
+  title: { default: 'Fairhours', template: '%s · Fairhours' },
   description: 'Arbeitszeiterfassung für Österreich – einfach, gesetzeskonform, bereit für die Lohnverrechnung.',
   manifest: '/manifest.webmanifest',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Zeitly' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Fairhours' },
   icons: { icon: '/icons/icon.svg', apple: '/icons/apple-touch-icon.png' },
 };
 

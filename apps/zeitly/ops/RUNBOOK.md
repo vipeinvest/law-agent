@@ -1,6 +1,6 @@
-# Zeitly – Betriebshandbuch (Runbook)
+# Fairhours – Betriebshandbuch (Runbook)
 
-Stand: November 2026 · Betreiber: MALELU AI · Produkt-Slug `zeitly` · Domain `zeitly.malelu.io`
+Stand: November 2026 · Betreiber: MALELU AI · Produkt-Slug `zeitly` · Domain `fairhours.malelu.io`
 
 ## 1. Architektur
 
@@ -17,7 +17,7 @@ Alle Grenzwerte und Rechtsgrundlagen des Regelwerks: `src/domain/rules.ts`. Date
 ## 2. Erstinstallation auf dem Traefik-VPS
 
 ```bash
-# 1) DNS: Cloudflare → A-Record zeitly.malelu.io → <VPS-IP> (Proxy orange), wie hoststatement.malelu.io
+# 1) DNS: Cloudflare → A-Record fairhours.malelu.io → <VPS-IP> (Proxy orange), wie hoststatement.malelu.io
 # 2) VPS
 ssh root@<traefik-vps>
 git clone https://github.com/vipeinvest/law-agent.git /opt/law-agent   # Branch mit apps/zeitly
@@ -28,13 +28,13 @@ cp .env.example .env && nano .env
 #   CRON_SECRET    = openssl rand -hex 24
 #   BACKUP_PASSPHRASE = openssl rand -base64 32   (SICHER ABLEGEN – ohne sie sind Backups wertlos)
 #   RESEND_API_KEY = aus Resend (gleicher Key wie HostStatement/Fibuly)
-#   APP_URL=https://zeitly.malelu.io, MAIL_FROM="Zeitly <notify@malelu.io>"
+#   APP_URL=https://fairhours.malelu.io, MAIL_FROM="Fairhours <notify@malelu.io>"
 #   ZEITLY_SEED=production  (legt MALELU AI + STEINERfood GmbH an; KEINE Mails – ZEITLY_SEED_SEND bleibt 0)
 #   ANTHROPIC_API_KEY = optional (Dokument-Extraktion im Onboarding, KI-Einordnung im Prüfbericht)
 docker network inspect traefik >/dev/null || docker network create traefik
 export GIT_SHA=$(git rev-parse --short HEAD)
 docker compose up -d --build --scale web=2
-curl -fsS https://zeitly.malelu.io/api/health
+curl -fsS https://fairhours.malelu.io/api/health
 ```
 
 Das Schema wurde bereits per Migration im Supabase-Projekt angelegt (`zeitly_0001_init`, `zeitly_0002_onboarding_roster_api`); die App prüft beim Start `zt_migrations` und spielt neue Migrationen automatisch ein.
@@ -43,14 +43,14 @@ Das Schema wurde bereits per Migration im Supabase-Projekt angelegt (`zeitly_000
 
 | Mandant | Login-URL | Personen |
 | --- | --- | --- |
-| MALELU AI (`malelu`) | https://zeitly.malelu.io/login?org=malelu | Peter Vitzthum – Inhaber (office@malelu.io), Admin (vipeinvestag@gmail.com) |
-| STEINERfood GmbH (`steinerfood`) | https://zeitly.malelu.io/login?org=steinerfood | Inge Monika Steiner & Matthias Steiner – Inhaber (Platzhalter-Adressen `inge.steiner@` / `matthias.steiner@steinerfood.com`, **inaktiv** bis bestätigt → Admin → Mitarbeiter → aktivieren/E-Mail korrigieren); Manuela Behr – Admin + erste Mitarbeiterin, **ohne** automatische Mail; Fragebogen-Link und Zugangs-Einladung schickt Peter erst nach Abstimmung mit STEINERfood von Hand (Admin → Mitarbeiter → Person → Onboarding → „Link senden“ bzw. Einladung) |
+| MALELU AI (`malelu`) | https://fairhours.malelu.io/login?org=malelu | Peter Vitzthum – Inhaber (office@malelu.io), Admin (vipeinvestag@gmail.com) |
+| STEINERfood GmbH (`steinerfood`) | https://fairhours.malelu.io/login?org=steinerfood | Inge Monika Steiner & Matthias Steiner – Inhaber (Platzhalter-Adressen `inge.steiner@` / `matthias.steiner@steinerfood.com`, **inaktiv** bis bestätigt → Admin → Mitarbeiter → aktivieren/E-Mail korrigieren); Manuela Behr – Admin + erste Mitarbeiterin, **ohne** automatische Mail; Fragebogen-Link und Zugangs-Einladung schickt Peter erst nach Abstimmung mit STEINERfood von Hand (Admin → Mitarbeiter → Person → Onboarding → „Link senden“ bzw. Einladung) |
 
 Der Seed ist idempotent: vorhandene Mandanten/Personen werden nie überschrieben; Mails gehen nur mit `ZEITLY_SEED_SEND=1` beim ersten Anlegen raus (Standard: aus). **Regel (Peter, 02.11.2026): Nichts an die STEINERfood-Geschäftsführung oder Manuela senden, bevor der Pilot ausgemacht ist.** Weitere Mitarbeiter:innen legt Manuela selbst an (Admin → Mitarbeiter → Neu, „Fragebogen senden“ ist vorausgewählt).
 
 ## 3. Deploy eines Updates
 
-**Per GitHub Actions (empfohlen):** Actions → „Zeitly Deploy" → Run workflow (Branch wählen, Replikas 2). Nutzt dieselben Secrets wie der bestehende Deploy-Workflow (`VPS_HOST`, `VPS_USER`, `VPS_PORT`, `VPS_SSH_KEY`); beim allerersten Lauf kann der komplette Inhalt der `.env` als Secret `ZEITLY_ENV` hinterlegt werden, er wird nur geschrieben, wenn auf dem VPS noch keine `.env` liegt. Der Workflow klont/aktualisiert `/opt/law-agent`, legt `/opt/zeitly` an, baut das Image, startet `web` (2×) und `cron` und prüft `/api/health`.
+**Per GitHub Actions (empfohlen):** Actions → „Fairhours Deploy" → Run workflow (Branch wählen, Replikas 2). Nutzt dieselben Secrets wie der bestehende Deploy-Workflow (`VPS_HOST`, `VPS_USER`, `VPS_PORT`, `VPS_SSH_KEY`); beim allerersten Lauf kann der komplette Inhalt der `.env` als Secret `ZEITLY_ENV` hinterlegt werden, er wird nur geschrieben, wenn auf dem VPS noch keine `.env` liegt. Der Workflow klont/aktualisiert `/opt/law-agent`, legt `/opt/zeitly` an, baut das Image, startet `web` (2×) und `cron` und prüft `/api/health`.
 
 **Per SSH (manuell):**
 

@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.7
-# Zeitly – production image (Next.js standalone, non-root, ~180 MB)
+# Fairhours – production image (Next.js standalone, non-root, ~180 MB)
 FROM node:22-alpine AS base
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH NEXT_TELEMETRY_DISABLED=1
 RUN corepack enable && corepack prepare pnpm@10.28.0 --activate

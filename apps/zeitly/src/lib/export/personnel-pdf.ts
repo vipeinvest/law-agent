@@ -26,7 +26,7 @@ export async function buildPersonnelSheetPdf(org: OrgRow, user: UserRow, profile
   const brandRgb = hexToRgb((org.theme as { primary?: string })?.primary || '#1f5f5b') ?? [31, 95, 91];
   const brand = rgb(brandRgb[0] / 255, brandRgb[1] / 255, brandRgb[2] / 255);
   doc.setTitle(`Personalstammblatt ${user.name}`);
-  doc.setCreator('Zeitly');
+  doc.setCreator('Fairhours');
 
   let page = doc.addPage(A4);
   let y = A4[1] - M;
@@ -36,7 +36,7 @@ export async function buildPersonnelSheetPdf(org: OrgRow, user: UserRow, profile
     page.drawText(safe(title), { x: A4[0] - M - bold.widthOfTextAtSize(safe(title), 9), y: A4[1] - 17, size: 9, font: bold, color: rgb(1, 1, 1) });
     y = A4[1] - 52;
   };
-  const footer = (n: number) => page.drawText(safe(`${org.name} · ${user.name} · erstellt ${fmtDateTime(new Date().toISOString(), org.time_zone)} mit Zeitly · vertraulich – nur für Personalverwaltung und Lohnverrechnung · Seite ${n}`), { x: M, y: 22, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
+  const footer = (n: number) => page.drawText(safe(`${org.name} · ${user.name} · erstellt ${fmtDateTime(new Date().toISOString(), org.time_zone)} mit Fairhours · vertraulich – nur für Personalverwaltung und Lohnverrechnung · Seite ${n}`), { x: M, y: 22, size: 7, font, color: rgb(0.45, 0.45, 0.45) });
   const section = (t: string) => {
     y -= 6;
     page.drawText(safe(t), { x: M, y, size: 10.5, font: bold, color: brand });
@@ -90,7 +90,7 @@ export async function buildPersonnelSheetPdf(org: OrgRow, user: UserRow, profile
   row('Pendlerpauschale', p.tax?.commuteKm != null ? `${p.tax.commuteKm} km, Öffi zumutbar: ${p.tax.publicTransportReasonable ?? 'unbekannt'}, Pendlerrechner: ${p.tax.pendlerrechnerDone ? 'liegt vor' : 'offen'}` : 'keine Angabe');
   if (p.tax?.notes) row('Anmerkung', p.tax.notes);
 
-  section('6. Dokumente (digital hinterlegt in Zeitly)');
+  section('6. Dokumente (digital hinterlegt in Fairhours)');
   if (files.length === 0) row('–', 'keine Dokumente hochgeladen');
   for (const f of files) row(DOC_LABELS[f.kind].split(' (')[0], `${f.filename} · ${Math.round(f.size_bytes / 1024)} KB · SHA-256 ${f.sha256.slice(0, 12)}…`);
 

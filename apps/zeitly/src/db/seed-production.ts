@@ -39,7 +39,7 @@ export const PRODUCTION_ORGS: SeedOrg[] = [
     projects: [
       ['KOMPAGNON', 'KOMPΛGNON', null, 'KST-10', '#0f172a', true],
       ['CLAIMLY', 'Claimly', null, 'KST-20', '#10b981', true],
-      ['ZEITLY', 'Zeitly', null, 'KST-30', '#1f5f5b', false],
+      ['FAIRHOURS', 'Fairhours', null, 'KST-30', '#1f5f5b', false],
       ['INTERN', 'Intern / Admin', null, 'KST-90', '#6b7280', false],
     ],
     users: [
@@ -134,5 +134,5 @@ async function inviteUser(db: DbClient, orgId: string, userId: string, what: { o
   if (!org || !user) return;
   const actor = { id: null, email: 'system', ip: null };
   if (what.onboarding) await sendOnboardingInvite(db, org, user, actor, { message: 'PS: Du bist als Administratorin eingerichtet – nach dem Fragebogen kannst du im Admin-Bereich weitere Kolleg:innen anlegen; jede Person bekommt denselben Link automatisch.' });
-  if (what.invite) await sendLoginInvite(db, org, user, 'Zeitly');
+  if (what.invite) await sendLoginInvite(db, org, user, 'Fairhours');
 }

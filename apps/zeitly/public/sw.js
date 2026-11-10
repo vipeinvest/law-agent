@@ -1,5 +1,5 @@
-/* Zeitly service worker: app-shell cache + network-first navigation. API calls are never cached. */
-const VERSION = 'zeitly-v1';
+/* Fairhours service worker: app-shell cache + network-first navigation. API calls are never cached. */
+const VERSION = 'fairhours-v1';
 const SHELL = ['/app', '/login', '/manifest.webmanifest', '/icons/icon.svg'];
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(VERSION).then((c) => c.addAll(SHELL).catch(() => undefined)).then(() => self.skipWaiting()));

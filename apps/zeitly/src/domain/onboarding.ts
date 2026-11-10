@@ -159,7 +159,7 @@ export function checkProfile(p: Partial<Profile>, docs: DocKind[] = []): Profile
   if (person?.birthDate && p.employment?.startDate) {
     const age = ageAt(person.birthDate, p.employment.startDate);
     if (age < 15) issues.push({ field: 'person.birthDate', severity: 'error', message: 'Unter 15 Jahren bei Eintritt – Beschäftigung grundsätzlich unzulässig (KJBG).' });
-    else if (age < 18) issues.push({ field: 'person.birthDate', severity: 'warn', message: 'Jugendliche:r (unter 18): KJBG gilt – Zeitly bildet die Sonderregeln (Arbeitszeit, Nachtarbeit, Pausen) nicht ab, bitte Lohnverrechnung informieren.' });
+    else if (age < 18) issues.push({ field: 'person.birthDate', severity: 'warn', message: 'Jugendliche:r (unter 18): KJBG gilt – Fairhours bildet die Sonderregeln (Arbeitszeit, Nachtarbeit, Pausen) nicht ab, bitte Lohnverrechnung informieren.' });
     if (age > 70) issues.push({ field: 'person.birthDate', severity: 'info', message: 'Eintrittsalter über 70 – Geburtsdatum bitte prüfen.' });
   }
   if (needsWorkPermit(person?.nationality)) {

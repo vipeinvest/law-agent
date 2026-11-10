@@ -1,6 +1,6 @@
-name: Zeitly Deploy
+name: Fairhours Deploy
 # Manual deploy of apps/zeitly to the MALELU Traefik VPS (same SSH secrets as deploy.yml).
-# Nothing runs automatically: start it from Actions → "Zeitly Deploy" → Run workflow.
+# Nothing runs automatically: start it from Actions → "Fairhours Deploy" → Run workflow.
 # Optional secret ZEITLY_ENV: full content of apps/zeitly/.env; it is written only if no .env exists on the VPS yet.
 on:
   workflow_dispatch:
@@ -51,7 +51,7 @@ jobs:
             sleep 8
             docker compose ps
             HOST=$(grep -E '^ZEITLY_HOST=' .env | cut -d= -f2- || true)
-            curl -fsS "https://${HOST:-zeitly.malelu.io}/api/health" && echo && echo "deploy $GIT_SHA ok"
+            curl -fsS "https://${HOST:-fairhours.malelu.io}/api/health" && echo && echo "deploy $GIT_SHA ok"
             docker image prune -f >/dev/null
         env:
           ZEITLY_ENV: ${{ secrets.ZEITLY_ENV }}

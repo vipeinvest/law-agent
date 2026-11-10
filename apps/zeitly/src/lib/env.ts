@@ -11,7 +11,7 @@ export const env = {
   dbKind: (process.env.ZEITLY_DB || (process.env.DATABASE_URL ? 'postgres' : 'pglite')) as 'postgres' | 'pglite',
   sessionSecret: process.env.SESSION_SECRET || (process.env.NODE_ENV === 'production' && !bool(process.env.ZEITLY_DEMO) ? '' : 'dev-secret-change-me-please-0123456789'),
   resendApiKey: process.env.RESEND_API_KEY || '',
-  mailFrom: process.env.MAIL_FROM || 'Zeitly <notify@malelu.io>',
+  mailFrom: process.env.MAIL_FROM || 'Fairhours <notify@malelu.io>',
   mailReplyTo: process.env.MAIL_REPLY_TO || 'office@malelu.io',
   operatorName: process.env.OPERATOR_NAME || 'MALELU AI – Peter Vitzthum',
   operatorAddress: process.env.OPERATOR_ADDRESS || 'Salzburg, Österreich',

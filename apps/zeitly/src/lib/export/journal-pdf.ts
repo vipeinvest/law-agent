@@ -78,8 +78,8 @@ export async function buildJournalPdf(inputs: JournalInput[]): Promise<Uint8Arra
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   doc.setTitle(`Arbeitszeitnachweis ${inputs.length === 1 ? inputs[0].user.name : inputs[0]?.org.name ?? ''}`);
-  doc.setAuthor('Zeitly');
-  doc.setCreator('Zeitly – Arbeitszeiterfassung');
+  doc.setAuthor('Fairhours');
+  doc.setCreator('Fairhours – Arbeitszeiterfassung');
   for (const input of inputs) renderEmployee(doc, font, bold, input);
   return doc.save();
 }
@@ -98,7 +98,7 @@ function renderEmployee(doc: PDFDocument, font: PDFFont, bold: PDFFont, input: J
     y: 0,
     pageNo: 0,
     brand,
-    footerText: `${org.name} · ${user.name} · ${title} · Aufzeichnung gemäß § 26 AZG · erstellt ${fmtDateTime(new Date().toISOString(), tz)} mit Zeitly`,
+    footerText: `${org.name} · ${user.name} · ${title} · Aufzeichnung gemäß § 26 AZG · erstellt ${fmtDateTime(new Date().toISOString(), tz)} mit Fairhours`,
     header: () => {
       ctx.page.drawRectangle({ x: 0, y: A4[1] - 26, width: A4[0], height: 26, color: rgb(brand[0], brand[1], brand[2]) });
       ctx.page.drawText(safe((org.theme as { appName?: string })?.appName || org.name), { x: M, y: A4[1] - 17, size: 10, font: bold, color: rgb(1, 1, 1) });

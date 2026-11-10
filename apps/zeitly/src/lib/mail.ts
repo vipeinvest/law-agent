@@ -69,7 +69,7 @@ export async function sendMail(input: MailInput): Promise<MailResult> {
 
 export function layout(title: string, bodyHtml: string, brand?: { name?: string; color?: string }): string {
   const color = brand?.color || '#1f5f5b';
-  const name = brand?.name || 'Zeitly';
+  const name = brand?.name || 'Fairhours';
   return `<!doctype html><html lang="de"><body style="margin:0;background:#f5f6f8;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#111827">
   <div style="max-width:560px;margin:24px auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb">
     <div style="background:${color};color:#fff;padding:18px 24px;font-weight:700;font-size:18px">${escapeHtml(name)}</div>

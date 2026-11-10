@@ -231,7 +231,7 @@ export function Planner({ monday, days, today, users, shifts, projects, template
         </table>
       </div>
       <p className="text-xs text-muted">
-        <Badge tone="amber">Entwurf</Badge> nur für Vorgesetzte sichtbar · <Badge tone="brand">veröffentlicht</Badge> Mitarbeiter:innen sehen den Plan in der App und per Mail · ✓ als Ist übernommen. Vor dem Veröffentlichen prüft Zeitly 12 h/60 h, Pausen, 11 h Ruhezeit und Wochenendruhe (AZG §§ 9, 11, 12; ARG § 3).
+        <Badge tone="amber">Entwurf</Badge> nur für Vorgesetzte sichtbar · <Badge tone="brand">veröffentlicht</Badge> Mitarbeiter:innen sehen den Plan in der App und per Mail · ✓ als Ist übernommen. Vor dem Veröffentlichen prüft Fairhours 12 h/60 h, Pausen, 11 h Ruhezeit und Wochenendruhe (AZG §§ 9, 11, 12; ARG § 3).
       </p>
 
       {editing && (

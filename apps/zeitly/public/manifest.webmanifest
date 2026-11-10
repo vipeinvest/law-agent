@@ -1,6 +1,6 @@
 {
-  "name": "Zeitly – Zeiterfassung",
-  "short_name": "Zeitly",
+  "name": "Fairhours – Zeiterfassung",
+  "short_name": "Fairhours",
   "description": "Arbeitszeiterfassung für Österreich",
   "start_url": "/app",
   "scope": "/",

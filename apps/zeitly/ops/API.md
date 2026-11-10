@@ -1,6 +1,6 @@
-# Zeitly API v1 (read-only) – Schnittstelle Lohnverrechnung / Buchhaltung
+# Fairhours API v1 (read-only) – Schnittstelle Lohnverrechnung / Buchhaltung
 
-Basis-URL: `https://zeitly.malelu.io/api/v1` · Format: JSON (UTF-8) · Zeiten: ISO 8601, Instants in UTC · Stunden: Dezimal (z. B. `7.75`).
+Basis-URL: `https://fairhours.malelu.io/api/v1` · Format: JSON (UTF-8) · Zeiten: ISO 8601, Instants in UTC · Stunden: Dezimal (z. B. `7.75`).
 
 ## Authentifizierung
 
@@ -62,6 +62,6 @@ Monatswerte je Mitarbeiter:in – dieselben Zahlen wie der XLSX-Lohnexport.
 
 ## Beispiel (BMD/DATEV-Import vorbereiten)
 ```bash
-curl -s -H "Authorization: Bearer $ZEITLY_KEY" "https://zeitly.malelu.io/api/v1/payroll/2026/10" | jq '.data[] | {personnelNo, worked: .hours.worked, overtime: .hours.overtime, night: .hours.night}'
+curl -s -H "Authorization: Bearer $ZEITLY_KEY" "https://fairhours.malelu.io/api/v1/payroll/2026/10" | jq '.data[] | {personnelNo, worked: .hours.worked, overtime: .hours.overtime, night: .hours.night}'
 ```
 Alternativ ohne API: **Admin → Export** liefert XLSX (Lohnarten konfigurierbar), CSV und das PDF-Monatsjournal; Versand an die Lohnverrechnung per Knopfdruck.

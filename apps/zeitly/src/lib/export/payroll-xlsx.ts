@@ -50,7 +50,7 @@ function style(ws: ExcelJS.Worksheet): void {
 
 export async function buildPayrollXlsx(org: OrgRow, data: OrgMonth): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Zeitly';
+  wb.creator = 'Fairhours';
   wb.created = new Date();
   const codes = payrollCodes(org);
   const label = fmtMonth(data.year, data.month);
@@ -253,7 +253,7 @@ export async function buildPayrollXlsx(org: OrgRow, data: OrgMonth): Promise<Uin
 
   // Sheet 5: Hinweise
   const wh = wb.addWorksheet('Hinweise');
-  wh.addRow(['Zeitly – Export Lohnverrechnung', label]);
+  wh.addRow(['Fairhours – Export Lohnverrechnung', label]);
   wh.addRow(['Betrieb', org.legal_name || org.name]);
   wh.addRow(['Erstellt', fmtDateTime(new Date().toISOString(), org.time_zone)]);
   wh.addRow([]);
@@ -271,7 +271,7 @@ export async function buildPayrollXlsx(org: OrgRow, data: OrgMonth): Promise<Uin
 
 export async function buildProjectsXlsx(org: OrgRow, data: OrgMonth): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'Zeitly';
+  wb.creator = 'Fairhours';
   const ws = wb.addWorksheet('Projekte');
   ws.columns = [
     { header: 'Projekt', key: 'proj' },

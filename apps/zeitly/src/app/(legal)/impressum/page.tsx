@@ -19,7 +19,7 @@ export default function ImpressumPage() {
       </p>
       <p>Unternehmensgegenstand: Entwicklung und Betrieb von Software (KI- und Automatisierungslösungen). Mitglied der Wirtschaftskammer Salzburg. Anwendbare Rechtsvorschriften: Gewerbeordnung (ris.bka.gv.at). [UID-Nummer / Gewerbebehörde bitte ergänzen]</p>
       <h2>Verantwortung für Inhalte und Daten</h2>
-      <p>Zeitly ist ein Werkzeug zur Arbeitszeiterfassung. Verantwortlich für die Einhaltung des Arbeitszeitgesetzes und für die Richtigkeit der erfassten Daten ist der jeweilige Arbeitgeber. Zeitly unterstützt mit Prüfregeln und Auswertungen, ersetzt aber keine arbeitsrechtliche Beratung.</p>
+      <p>Fairhours ist ein Werkzeug zur Arbeitszeiterfassung. Verantwortlich für die Einhaltung des Arbeitszeitgesetzes und für die Richtigkeit der erfassten Daten ist der jeweilige Arbeitgeber. Fairhours unterstützt mit Prüfregeln und Auswertungen, ersetzt aber keine arbeitsrechtliche Beratung.</p>
       <h2>Streitschlichtung</h2>
       <p>
         Verbraucher haben die Möglichkeit, Beschwerden an die Online-Streitbeilegungsplattform der EU zu richten: <a href="https://ec.europa.eu/odr">ec.europa.eu/odr</a>. Wir sind nicht verpflichtet und nicht bereit, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.
