@@ -52,6 +52,8 @@ const schema = z.object({
   rules: rulesSchema.optional(),
   theme: themeSchema.optional(),
   payrollCodes: z.record(z.string(), z.object({ code: z.string().max(20), label: z.string().max(80) })).optional(),
+  /** Wochenbudget Personalkosten in EUR (Dienstplan); null löscht das Budget. */
+  laborBudgetWeekly: z.number().min(0).max(10_000_000).nullable().optional(),
 });
 
 export const PATCH = handler(async (req) => {
@@ -69,7 +71,7 @@ export const PATCH = handler(async (req) => {
       throw new ApiError(400, 'Ungültige Zeitzone.');
     }
   }
-  const settings = { ...(org.settings || {}), ...(b.rules || {}), ...(b.payrollCodes ? { payrollCodes: b.payrollCodes } : {}) };
+  const settings = { ...(org.settings || {}), ...(b.rules || {}), ...(b.payrollCodes ? { payrollCodes: b.payrollCodes } : {}), ...(b.laborBudgetWeekly !== undefined ? { laborBudgetWeekly: b.laborBudgetWeekly } : {}) };
   const theme = { ...(org.theme || {}), ...(b.theme || {}) };
   const { rows } = await db.query<OrgRow>(
     `update zt_orgs set name = coalesce($2, name), legal_name = case when $3::boolean then $4 else legal_name end, address = case when $5::boolean then $6 else address end, uid_number = case when $7::boolean then $8 else uid_number end,

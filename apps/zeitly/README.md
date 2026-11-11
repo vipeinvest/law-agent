@@ -15,11 +15,26 @@ Fairhours ist eine schlanke, mobile-first Web-App (PWA) für die gesetzeskonform
 - **Exporte für Lohnverrechnung & Buchhaltung:** PDF-Arbeitszeitnachweis je Person (§ 26 AZG, Unterschriftsfelder), Excel mit Lohnarten-Importblatt (Codes konfigurierbar), CSV, Projekt-/Kostenstellen-Excel, Versand per E-Mail an die Steuerberatung mit einem Klick.
 - **Mitarbeiter-Onboarding (digitaler Personalfragebogen):** Admin legt die Person an → sie bekommt automatisch einen Link (14 Tage gültig, ohne Login). Am Handy: Ausweis, e-card, Meldezettel, Bankkarte fotografieren, Felder per Spracheingabe diktieren, KI-Extraktion schlägt Werte vor (werden nur nach Bestätigung übernommen), Prüfung von SV-Nummer, IBAN, Alter (KJBG), Beschäftigungsbewilligung (Drittstaaten). Nach dem Absenden: Zugang zur Zeiterfassung per Mail, Personalstammblatt + ÖGK-Mindestangaben als PDF für die Lohnverrechnung, Übergabe an LV mit einem Klick.
 - **Dienstplanung SOLL → IST:** Wochenplaner mit Vorlagen, Kopieren der Vorwoche, AZG-Vorabprüfung vor der Veröffentlichung (Höchstgrenzen, Ruhezeiten, Wochenendruhe), Versand des Plans per Mail. Mitarbeiter:innen übernehmen geplante Tage mit einem Tipp als gearbeitet („wie geplant“), optional nachts automatisch (Negativzeiterfassung) – Abweichungen werden gestempelt oder nachgetragen. Soll-Zeit wahlweise aus Vertrag oder aus dem veröffentlichten Plan.
+- **Personalkosten-Budget im Plan:** Kostensatz je Stunde pro Person (nur für Admin/Inhaber sichtbar) und ein Wochenbudget je Mandant. Der Planer zeigt schon beim Planen geplante Stunden, Kosten, Auslastung des Budgets (frei / knapp / über Budget) und markiert Abwesenheiten in der Woche; Schichten auf genehmigten Abwesenheiten erscheinen in der Vorabprüfung als Hinweis.
 - **Agentische Prüfung Arbeitsrecht:** deterministischer Monats-Prüfbericht je Person (Soll/Ist/Saldo, Zuschlagsbuckets, Verstöße mit Paragraph, Empfehlung) plus optionale KI-Einordnung in Klartext für die Übergabe an die Lohnverrechnung.
 - **Schnittstelle LV/BH:** REST-API v1 (read-only, Bearer-Schlüssel mit Scopes, je Mandant unter Einstellungen) für Lohnsoftware/Steuerberatung: Mitarbeiter, Personalstammdaten, Buchungen, Abwesenheiten, Dienstplan, Monatswerte – siehe `ops/API.md`.
 - **Verwaltung:** Mitarbeiter mit Arbeitszeitmodell, Projekte/Kostenstellen, Abwesenheitsanträge mit Genehmigung, Excel/CSV-Import bestehender Aufzeichnungen (freie Spaltenzuordnung), Audit-Log, Löschlauf nach Aufbewahrungsfrist.
 - **White-Label & Multi-Mandant:** Logo, Farben, App-Name je Betrieb; Mitarbeiter sehen nur eigene Daten, Vorgesetzte ihr Team, Rolle „Lohnverrechnung“ nur Exporte.
 - **Datenschutz by design:** kein GPS, keine Screenshots, Login per E-Mail-Code ohne Passwort, EU-Hosting, 7-Jahres-Aufbewahrung mit automatischer Bereinigung. Rechtspaket (AVV, Datenschutzinfo, Betriebsvereinbarung, Pilotvertrag, Checkliste) unter `deliverables/zeitly/`.
+
+## Fahrplan (nach Vorbild etablierter HR-Suiten)
+
+Noch nicht gebaut, in dieser Reihenfolge sinnvoll:
+
+1. Schichtwünsche und Verfügbarkeiten der Mitarbeiter:innen direkt im Planer.
+2. Terminal-/Kiosk-Modus mit PIN für einen gemeinsamen Stempelplatz (Produktion, Lager, Gastronomie).
+3. Abteilungen/Kostenstellen mit eigenem Budget und Auswertung Plan gegen Ist in Euro.
+4. Monatsnachweis digital gegenzeichnen (Mitarbeiter:in und Führungskraft) statt nur einreichen/freigeben.
+5. Team-Mitteilungen und Dokumentenablage (z. B. Lohnzettel aus der Lohnverrechnung).
+6. Mehrsprachigkeit und Länder-Regelpakete (derzeit Deutsch und österreichisches Arbeitszeitrecht).
+
+Bewusst nicht geplant: eine eigene Lohnverrechnung – dafür gibt es die Schnittstelle zu Lohnsoftware und Steuerberatung.
+
 
 ## Stack
 

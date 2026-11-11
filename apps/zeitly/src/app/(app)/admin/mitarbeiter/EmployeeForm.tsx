@@ -108,6 +108,9 @@ export function EmployeeForm({ initial, managers, isOwner, selfId }: { initial: 
                 <option value="duration_only">Nur Dauer der Tagesarbeitszeit</option>
               </select>
             </Field>
+            <Field label="Kostensatz je Stunde (EUR)" htmlFor="e-cost" hint="Inklusive Lohnnebenkosten. Grundlage für das Personalkosten-Budget im Dienstplan, nur für Admin und Inhaber sichtbar.">
+              <input id="e-cost" type="number" step="0.01" min="0" className="input" value={emp.hourlyCost ?? ''} onChange={(e) => setEmp({ hourlyCost: e.target.value === '' ? null : Number(e.target.value) })} placeholder="z. B. 28,50" />
+            </Field>
             <Field label="Urlaubsanspruch (Arbeitstage/Jahr)" htmlFor="e-vac">
               <input id="e-vac" type="number" step="0.5" className="input" value={emp.vacationDaysPerYear} onChange={(e) => setEmp({ vacationDaysPerYear: Number(e.target.value) })} />
             </Field>

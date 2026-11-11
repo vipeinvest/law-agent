@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getDb } from '@/db/client';
-import { requireSession } from '@/lib/auth';
+import { hasRole, requireSession } from '@/lib/auth';
 import { weekPlan } from '@/lib/roster';
 import { listProjects } from '@/lib/repo';
 import { listTemplates } from '@/lib/repo-v2';
@@ -19,6 +19,9 @@ export default async function RosterPage({ searchParams }: { searchParams: { w?:
   const monday = weekStart(/^\d{4}-\d{2}-\d{2}$/.test(searchParams.w ?? '') ? searchParams.w! : addDays(today, 7));
   const [plan, projects, templates] = await Promise.all([weekPlan(db, s, monday), listProjects(db, s.org.id), listTemplates(db, s.org.id)]);
   const drafts = plan.shifts.filter((x) => x.status === 'draft').length;
+  // cost rates are salary-like data: only admin/owner see amounts, managers plan in hours
+  const canSeeCost = hasRole(s.user, 'admin');
+  const budgetWeekly = Number((s.org.settings as { laborBudgetWeekly?: number | null } | null)?.laborBudgetWeekly ?? 0) || null;
   return (
     <div>
       <PageHeader
@@ -47,6 +50,10 @@ export default async function RosterPage({ searchParams }: { searchParams: { w?:
         projects={projects.map((p) => ({ id: p.id, code: p.code, name: p.name, color: p.color }))}
         templates={templates.map((t) => ({ id: t.id, name: t.name, start: t.start_time, end: t.end_time, breakMinutes: t.break_minutes, location: t.location, color: t.color }))}
         prevWeekCount={plan.prevWeekCount}
+        absences={plan.absences.map((a) => ({ userId: a.user_id, from: a.date_from, to: a.date_to, type: a.type, status: a.status, halfDay: a.half_day }))}
+        canSeeCost={canSeeCost}
+        costs={canSeeCost ? Object.fromEntries(plan.users.map((u) => [u.id, Number((u.employment as { hourlyCost?: number | null })?.hourlyCost ?? 0) || null])) : {}}
+        budgetWeekly={canSeeCost ? budgetWeekly : null}
       />
     </div>
   );

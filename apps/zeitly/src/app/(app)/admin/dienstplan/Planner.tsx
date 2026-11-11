@@ -2,9 +2,10 @@
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import clsx from 'clsx';
-import { Copy, Plus, Send, Trash2, X } from 'lucide-react';
+import { Copy, Euro, Plus, Send, Trash2, X } from 'lucide-react';
 import { Badge, Field, SeverityBadge, Spinner } from '@/components/ui';
-import { fmtDate, fmtH, LOCATION_LABELS, WEEKDAYS_SHORT } from '@/lib/format';
+import { ABSENCE_LABELS, fmtDate, fmtH, LOCATION_LABELS, WEEKDAYS_SHORT } from '@/lib/format';
+import { absenceOn, summarizeLaborPlan, type AbsenceLike } from '@/domain/budget';
 import { addDays } from '@/domain/time';
 
 interface Shift {
@@ -38,7 +39,14 @@ interface Props {
   projects: Array<{ id: string; code: string; name: string; color: string | null }>;
   templates: Template[];
   prevWeekCount: number;
+  absences: AbsenceLike[];
+  /** amounts are only shown to admin/owner */
+  canSeeCost: boolean;
+  costs: Record<string, number | null>;
+  budgetWeekly: number | null;
 }
+
+const eur = (n: number) => new Intl.NumberFormat('de-AT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
 
 function net(s: { start: string; end: string; breakMinutes: number }): number {
   const [sh, sm] = s.start.split(':').map(Number);
@@ -48,7 +56,7 @@ function net(s: { start: string; end: string; breakMinutes: number }): number {
   return Math.max(0, g - s.breakMinutes);
 }
 
-export function Planner({ monday, days, today, users, shifts, projects, templates, prevWeekCount }: Props) {
+export function Planner({ monday, days, today, users, shifts, projects, templates, prevWeekCount, absences, canSeeCost, costs, budgetWeekly }: Props) {
   const router = useRouter();
   const [editing, setEditing] = useState<Partial<Shift> | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -56,6 +64,20 @@ export function Planner({ monday, days, today, users, shifts, projects, template
   const [checks, setChecks] = useState<Array<{ userId: string; userName: string; violations: Array<{ code: string; severity: 'error' | 'warn' | 'info'; date: string; message: string; legalRef: string }> }> | null>(null);
   const [newTpl, setNewTpl] = useState<Partial<Template> | null>(null);
   const totals = useMemo(() => Object.fromEntries(users.map((u) => [u.id, shifts.filter((s) => s.userId === u.id).reduce((a, s) => a + net(s), 0)])), [users, shifts]);
+  const labor = useMemo(() => summarizeLaborPlan(shifts, costs, budgetWeekly), [shifts, costs, budgetWeekly]);
+  const contractMinutes = useMemo(() => users.reduce((a, u) => a + u.weeklyMinutes, 0), [users]);
+  const [budgetInput, setBudgetInput] = useState<string | null>(null);
+  async function saveBudget() {
+    if (budgetInput === null) return;
+    const v = budgetInput.trim() === '' ? null : Number(budgetInput.replace(',', '.'));
+    if (v !== null && (!Number.isFinite(v) || v < 0)) return setMsg({ ok: false, text: 'Bitte einen Betrag in Euro eingeben.' });
+    setBusy('budget');
+    const r = await fetch('/api/admin/org', { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ laborBudgetWeekly: v }) });
+    setBusy(null);
+    if (!r.ok) return setMsg({ ok: false, text: 'Budget konnte nicht gespeichert werden.' });
+    setBudgetInput(null);
+    router.refresh();
+  }
 
   async function post(body: Record<string, unknown>) {
     setBusy(String(body.action));
@@ -179,6 +201,57 @@ export function Planner({ monday, days, today, users, shifts, projects, template
         </section>
       )}
 
+      <section className="card p-4" data-testid="labor-summary">
+        <div className="flex flex-wrap items-end gap-x-8 gap-y-3">
+          <div>
+            <div className="text-xs uppercase tracking-wide text-muted">Geplant diese Woche</div>
+            <div className="text-xl font-bold tabular-nums">{fmtH(labor.minutes)}</div>
+            <div className="text-xs text-muted">Vertragsstunden im Team {fmtH(contractMinutes)}</div>
+          </div>
+          {canSeeCost && (
+            <>
+              <div>
+                <div className="text-xs uppercase tracking-wide text-muted">Personalkosten laut Plan</div>
+                <div className="text-xl font-bold tabular-nums" data-testid="labor-cost">{eur(labor.cost)}</div>
+                <div className="text-xs text-muted">{labor.uncosted.length ? `${labor.uncosted.length} Person(en) ohne Kostensatz nicht enthalten` : 'Stunden mal Kostensatz je Person'}</div>
+              </div>
+              <div className="min-w-[240px] flex-1">
+                <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted">
+                  <span>Wochenbudget</span>
+                  {budgetInput === null ? (
+                    <button className="normal-case underline" onClick={() => setBudgetInput(labor.budget ? String(labor.budget) : '')} data-testid="budget-edit">
+                      {labor.budget ? 'ändern' : 'festlegen'}
+                    </button>
+                  ) : (
+                    <span className="flex items-center gap-1 normal-case">
+                      <input className="input h-7 w-28 text-sm" inputMode="decimal" value={budgetInput} onChange={(e) => setBudgetInput(e.target.value)} placeholder="EUR" aria-label="Wochenbudget in Euro" data-testid="budget-input" />
+                      <button className="btn-secondary btn-sm" onClick={saveBudget} disabled={busy !== null} data-testid="budget-save">
+                        Speichern
+                      </button>
+                      <button className="btn-ghost btn-sm" onClick={() => setBudgetInput(null)} aria-label="Abbrechen">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </div>
+                {labor.budget ? (
+                  <>
+                    <div className="mt-1 h-2.5 rounded-full bg-black/10 overflow-hidden" role="progressbar" aria-valuenow={Math.round((labor.utilization ?? 0) * 100)} aria-valuemin={0} aria-valuemax={100}>
+                      <div className={clsx('h-full rounded-full', labor.status === 'over' ? 'bg-red-600' : labor.status === 'tight' ? 'bg-amber-500' : 'bg-emerald-600')} style={{ width: `${Math.min(100, Math.round((labor.utilization ?? 0) * 100))}%` }} />
+                    </div>
+                    <div className={clsx('mt-1 text-sm tabular-nums', labor.status === 'over' ? 'text-red-700 font-semibold' : 'text-muted')} data-testid="budget-status">
+                      {eur(labor.cost)} von {eur(labor.budget)} · {Math.round((labor.utilization ?? 0) * 100)} % · {labor.status === 'over' ? `${eur(Math.abs(labor.remaining ?? 0))} über Budget` : `${eur(labor.remaining ?? 0)} frei`}
+                    </div>
+                  </>
+                ) : (
+                  <div className="mt-1 text-sm text-muted">Noch kein Budget festgelegt. Mit Budget zeigt der Plan sofort, ob die Woche im Rahmen bleibt.</div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </section>
+
       <div className="card overflow-x-auto">
         <table className="table min-w-[900px]">
           <thead>
@@ -203,9 +276,17 @@ export function Planner({ monday, days, today, users, shifts, projects, template
                 </td>
                 {days.map((d) => {
                   const cell = shifts.filter((s) => s.userId === u.id && s.date === d);
+                  const abs = absenceOn(absences, u.id, d);
                   return (
-                    <td key={d} className={clsx('align-top p-1', d < today && 'bg-gray-50/60')}>
+                    <td key={d} className={clsx('align-top p-1', d < today && 'bg-gray-50/60', abs && 'bg-sky-50/70')}>
                       <div className="space-y-1 min-h-[44px]">
+                        {abs && (
+                          <div className={clsx('rounded-lg px-2 py-1 text-xs border', abs.status === 'approved' ? 'bg-sky-100 border-sky-200 text-sky-900' : 'bg-white border-dashed border-sky-300 text-sky-800', cell.length > 0 && abs.status === 'approved' && 'ring-2 ring-red-400')} data-testid="plan-absence" title={cell.length > 0 && abs.status === 'approved' ? 'Schicht trotz genehmigter Abwesenheit geplant' : undefined}>
+                            <span className="font-semibold">{ABSENCE_LABELS[abs.type] ?? abs.type}</span>
+                            {abs.halfDay ? ' (½)' : ''}
+                            {abs.status === 'requested' ? ' · beantragt' : ''}
+                          </div>
+                        )}
                         {cell.map((s) => (
                           <button key={s.id} onClick={() => setEditing(s)} className={clsx('w-full text-left rounded-lg px-2 py-1 text-xs border', s.status === 'published' ? 'bg-brand-soft border-brand/30 text-brand' : 'bg-amber-50 border-amber-200 text-amber-900')}>
                             <div className="font-semibold tabular-nums">
@@ -224,14 +305,17 @@ export function Planner({ monday, days, today, users, shifts, projects, template
                     </td>
                   );
                 })}
-                <td className={clsx('text-right tabular-nums font-medium', totals[u.id] > u.weeklyMinutes ? 'text-amber-700' : '')}>{fmtH(totals[u.id] ?? 0)}</td>
+                <td className={clsx('text-right tabular-nums font-medium', totals[u.id] > u.weeklyMinutes ? 'text-amber-700' : '')}>
+                  {fmtH(totals[u.id] ?? 0)}
+                  {canSeeCost && (totals[u.id] ?? 0) > 0 && <div className="text-xs font-normal text-muted">{labor.perUser[u.id]?.cost != null ? eur(labor.perUser[u.id].cost as number) : 'kein Satz'}</div>}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <p className="text-xs text-muted">
-        <Badge tone="amber">Entwurf</Badge> nur für Vorgesetzte sichtbar · <Badge tone="brand">veröffentlicht</Badge> Mitarbeiter:innen sehen den Plan in der App und per Mail · ✓ als Ist übernommen. Vor dem Veröffentlichen prüft Fairhours 12 h/60 h, Pausen, 11 h Ruhezeit und Wochenendruhe (AZG §§ 9, 11, 12; ARG § 3).
+        <Euro className="w-3 h-3 inline" /> Kosten und Budget sehen nur Admin und Inhaber, der Kostensatz steht in den Stammdaten der Person. Abwesenheiten erscheinen blau im Plan. <Badge tone="amber">Entwurf</Badge> nur für Vorgesetzte sichtbar · <Badge tone="brand">veröffentlicht</Badge> Mitarbeiter:innen sehen den Plan in der App und per Mail · ✓ als Ist übernommen. Vor dem Veröffentlichen prüft Fairhours 12 h/60 h, Pausen, 11 h Ruhezeit und Wochenendruhe (AZG §§ 9, 11, 12; ARG § 3).
       </p>
 
       {editing && (

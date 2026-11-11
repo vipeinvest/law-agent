@@ -22,6 +22,7 @@ const employmentSchema = z.object({
   teleworkAgreement: z.boolean().optional(),
   targetMode: z.enum(['contract', 'plan']).optional(),
   autoAdoptPlan: z.boolean().optional(),
+  hourlyCost: z.number().min(0).max(1000).nullable().optional(),
 });
 
 const createSchema = z.object({

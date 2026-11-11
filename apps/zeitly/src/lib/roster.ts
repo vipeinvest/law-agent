@@ -5,7 +5,7 @@ import { ApiError } from './api';
 import { audit, type AuditActor } from './audit';
 import { hasRole, type Session } from './auth';
 import { orgRules, userEmployment, type OrgRow, type UserRow } from './org';
-import { getPeriod, getUser, insertEntry, isLockedStatus, listEntries, listUsers, visibleUsers } from './repo';
+import { getPeriod, getUser, insertEntry, isLockedStatus, listEntries, listOrgAbsences, listUsers, visibleUsers } from './repo';
 import { listShifts, type ShiftRow } from './repo-v2';
 import { assertPeriodEditable } from './entries';
 import { evaluatePeriod } from '@/domain/rules';
@@ -13,7 +13,7 @@ import type { EntryLocation, TimeEntry, Violation } from '@/domain/types';
 import { addDays, isoWeekKey, localDateTimeToInstant, minutesBetween, toISODate, weekStart } from '@/domain/time';
 import { escapeHtml, layout, sendMail } from './mail';
 import { env } from './env';
-import { fmtDate, LOCATION_LABELS, WEEKDAYS_SHORT } from './format';
+import { ABSENCE_LABELS, fmtDate, LOCATION_LABELS, WEEKDAYS_SHORT } from './format';
 
 export const shiftSchema = z.object({
   id: z.string().uuid().optional(),
@@ -99,6 +99,7 @@ export async function checkWeek(db: DbClient, org: OrgRow, monday: string, userI
   const sunday = addDays(monday, 6);
   const shifts = await listShifts(db, org.id, addDays(monday, -7), addDays(sunday, 7));
   const users = (await listUsers(db, org.id)).filter((u) => !userIds || userIds.includes(u.id));
+  const approvedAbsences = await listOrgAbsences(db, org.id, monday, sunday, 'approved');
   const out: PublishCheck[] = [];
   for (const u of users) {
     const mine = shifts.filter((x) => x.user_id === u.id);
@@ -114,6 +115,11 @@ export async function checkWeek(db: DbClient, org: OrgRow, monday: string, userI
     for (const ym of months) {
       const r = evaluatePeriod({ userId: u.id, year: Number(ym.slice(0, 4)), month: Number(ym.slice(5, 7)), rules, employment: userEmployment(u, rules), entries: synthetic, absences: [], balanceStartMinutes: 0, now: '2100-01-01T00:00:00Z' });
       for (const v of r.violations) if (v.date >= monday && v.date <= sunday && v.severity !== 'info' && v.code !== 'ENTRY_OPEN') violations.push(v);
+    }
+    for (const x of mine) {
+      if (x.date < monday || x.date > sunday) continue;
+      const a = approvedAbsences.find((ab) => ab.user_id === u.id && ab.date_from <= x.date && ab.date_to >= x.date);
+      if (a) violations.push({ code: 'PLAN_ON_ABSENCE', severity: 'warn', date: x.date, message: `Schicht ${x.start_time}–${x.end_time} geplant trotz genehmigter Abwesenheit (${ABSENCE_LABELS[a.type] ?? a.type}${a.half_day ? ', halber Tag' : ''}).`, legalRef: 'Dienstplan' });
     }
     const seen = new Set<string>();
     out.push({ userId: u.id, userName: u.name, violations: violations.filter((v) => !seen.has(v.code + v.date) && seen.add(v.code + v.date)) });
@@ -183,7 +189,9 @@ export async function weekPlan(db: DbClient, s: Session, monday: string) {
   const users = (await visibleUsers(db, s.user)).filter((u) => u.role !== 'payroll');
   const shifts = await listShifts(db, s.org.id, monday, addDays(monday, 6));
   const prevWeekCount = (await listShifts(db, s.org.id, addDays(monday, -7), addDays(monday, -1))).length;
-  return { users, shifts, prevWeekCount, monday, days: Array.from({ length: 7 }, (_, i) => addDays(monday, i)) };
+  const ids = new Set(users.map((u) => u.id));
+  const absences = (await listOrgAbsences(db, s.org.id, monday, addDays(monday, 6))).filter((a) => ids.has(a.user_id) && a.status !== 'rejected');
+  return { users, shifts, absences, prevWeekCount, monday, days: Array.from({ length: 7 }, (_, i) => addDays(monday, i)) };
 }
 
 export { weekStart };

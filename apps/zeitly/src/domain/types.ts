@@ -119,6 +119,8 @@ export interface Employment {
   teleworkAgreement?: boolean;
   /** Soll-Ermittlung: aus Vertrag (gleichmäßig auf Arbeitstage) oder aus dem veröffentlichten Dienstplan. */
   targetMode?: 'contract' | 'plan';
+  /** Kostensatz in EUR je Stunde inkl. Lohnnebenkosten – Grundlage für das Personalkosten-Budget im Dienstplan (nur für Admin/Inhaber sichtbar). */
+  hourlyCost?: number | null;
   /** Veröffentlichte Schichten am Folgetag automatisch als Ist übernehmen, wenn nichts gestempelt wurde (Bestätigung beim Monatsabschluss). */
   autoAdoptPlan?: boolean;
 }
@@ -176,6 +178,7 @@ export type ViolationCode =
   | 'ENTRY_OVERLAP'
   | 'ENTRY_OPEN'
   | 'ENTRY_ON_ABSENCE_DAY'
+  | 'PLAN_ON_ABSENCE'
   | 'DURATION_ONLY_WITHOUT_DURATION';
 
 export type Severity = 'error' | 'warn' | 'info';

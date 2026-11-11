@@ -256,3 +256,44 @@ test('review: admin opens the monthly Prüfbericht for an employee', async ({ pa
   await expect(dlg).toContainText('Soll');
   await expect(dlg).toContainText(/Zu klären|keine Verstöße/);
 });
+
+test('roster budget: admin sets cost rate and weekly budget, planner shows cost, budget status and absences', async ({ page }) => {
+  // owner account: the admin address already uses its 5 login codes per 15 min in this suite
+  await login(page, 'inge.steiner@steinerfood.com');
+  await page.goto('/admin/mitarbeiter');
+  const href = await page.getByRole('link', { name: 'Tobias Kern', exact: true }).first().getAttribute('href');
+  const tobiasId = href!.split('/admin/mitarbeiter/')[1].split('?')[0];
+  const emp = { weeklyMinutes: 2400, workDays: [1, 2, 3, 4, 5], recordMode: 'full', gleitzeit: false, vacationDaysPerYear: 25, openingBalanceMinutes: 0, allIn: false, hourlyCost: 30 };
+  expect((await page.request.patch('/api/admin/users', { data: { id: tobiasId, employment: emp } })).status()).toBe(200);
+  expect((await page.request.patch('/api/admin/org', { data: { laborBudgetWeekly: 500 } })).status()).toBe(200);
+  // approved absence on Friday of the planned week for Tobias (demo roster has a shift there)
+  const monday = (() => { const d = new Date(today); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return iso(d); })();
+  const friday = (() => { const d = new Date(monday + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + 4); return iso(d); })();
+  const abs = await page.request.post('/api/absences', { data: { userId: tobiasId, dateFrom: friday, dateTo: friday, type: 'vacation', halfDay: false } });
+  expect([200, 201]).toContain(abs.status());
+  const absId = (await abs.json()).absence?.id;
+  if (absId) await page.request.patch(`/api/absences/${absId}`, { data: { status: 'approved' } });
+
+  await page.goto(`/admin/dienstplan?w=${monday}`);
+  const summary = page.getByTestId('labor-summary');
+  await expect(summary).toBeVisible();
+  // Tobias: 5 shifts of 8.5 h net at 30 EUR = 1.275 EUR, above the 500 EUR budget
+  await expect(page.getByTestId('labor-cost')).toContainText('1.275');
+  await expect(page.getByTestId('budget-status')).toContainText('über Budget');
+  await expect(page.getByTestId('plan-absence').filter({ hasText: 'Urlaub' }).first()).toBeVisible();
+  // raise the budget in the planner itself
+  await page.getByTestId('budget-edit').click();
+  await page.getByTestId('budget-input').fill('2000');
+  await page.getByTestId('budget-save').click();
+  await expect(page.getByTestId('budget-status')).toContainText('frei');
+  // the week check warns about the shift on the approved absence
+  const check = await page.request.post('/api/admin/shifts', { data: { action: 'check', monday } });
+  const checks = (await check.json()).checks as Array<{ userId: string; violations: Array<{ code: string }> }>;
+  expect(checks.find((c) => c.userId === tobiasId)?.violations.some((v) => v.code === 'PLAN_ON_ABSENCE')).toBe(true);
+  // managers do not see amounts
+  await page.context().clearCookies();
+  await login(page, 'nina.hofer@steinerfood.com');
+  await page.goto(`/admin/dienstplan?w=${monday}`);
+  await expect(page.getByTestId('labor-summary')).toBeVisible();
+  await expect(page.getByTestId('labor-cost')).toHaveCount(0);
+});
