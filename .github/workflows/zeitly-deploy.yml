@@ -1,0 +1,59 @@
+name: Fairhours Deploy
+# Manual deploy of apps/zeitly to the MALELU Traefik VPS (same SSH secrets as deploy.yml).
+# Nothing runs automatically: start it from Actions → "Fairhours Deploy" → Run workflow.
+# Optional secret ZEITLY_ENV: full content of apps/zeitly/.env; it is written only if no .env exists on the VPS yet.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Branch or tag to deploy
+        required: true
+        default: main
+      scale:
+        description: Number of web replicas
+        required: true
+        default: '2'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: ZEITLY_ENV,DEPLOY_REF,DEPLOY_SCALE
+          script_stop: true
+          script: |
+            set -euo pipefail
+            if [ ! -d /opt/law-agent/.git ]; then
+              git clone https://github.com/vipeinvest/law-agent.git /opt/law-agent
+            fi
+            cd /opt/law-agent
+            git fetch --all --prune
+            git checkout -q "$DEPLOY_REF"
+            git pull --ff-only origin "$DEPLOY_REF" || true
+            [ -L /opt/zeitly ] || ln -s /opt/law-agent/apps/zeitly /opt/zeitly
+            cd /opt/zeitly
+            if [ ! -f .env ]; then
+              if [ -n "${ZEITLY_ENV:-}" ]; then
+                printf '%s\n' "$ZEITLY_ENV" > .env && chmod 600 .env && echo ".env written from secret ZEITLY_ENV"
+              else
+                echo "::error::No .env on the VPS and secret ZEITLY_ENV is empty – see ops/RUNBOOK.md section 2"; exit 1
+              fi
+            fi
+            docker network inspect traefik >/dev/null 2>&1 || docker network create traefik
+            export GIT_SHA=$(git rev-parse --short HEAD)
+            docker compose build --pull web
+            docker compose up -d --scale web="$DEPLOY_SCALE" web cron
+            sleep 8
+            docker compose ps
+            HOST=$(grep -E '^ZEITLY_HOST=' .env | cut -d= -f2- || true)
+            curl -fsS "https://${HOST:-fairhours.malelu.io}/api/health" && echo && echo "deploy $GIT_SHA ok"
+            docker image prune -f >/dev/null
+        env:
+          ZEITLY_ENV: ${{ secrets.ZEITLY_ENV }}
+          DEPLOY_REF: ${{ inputs.ref }}
+          DEPLOY_SCALE: ${{ inputs.scale }}
