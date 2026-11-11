@@ -27,7 +27,13 @@ jobs:
       - run: pnpm test
       - run: pnpm build
         env: { ZEITLY_DB: pglite, ZEITLY_DEMO: '1', SESSION_SECRET: ci-secret-ci-secret-ci-secret-1234 }
-      - run: npx playwright install --with-deps chromium
+      - name: Install Playwright Chromium
+        # The browser comes from the Playwright CDN. The system packages are a separate, best-effort step:
+        # the 24.04 runner image already ships the libraries Chromium needs (only extra fonts are missing),
+        # and the hosted apt mirror is unreachable now and then, which must not fail the whole check.
+        run: |
+          npx playwright install chromium
+          timeout 240 npx playwright install-deps chromium || echo "::warning::Playwright system packages not fully installed (apt mirror unreachable); continuing with the libraries on the runner image."
       - run: pnpm e2e
         env: { ZEITLY_DB: pglite, ZEITLY_DEMO: '1', SESSION_SECRET: ci-secret-ci-secret-ci-secret-1234, APP_URL: http://127.0.0.1:3100 }
       - uses: actions/upload-artifact@v4
