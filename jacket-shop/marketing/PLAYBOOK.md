@@ -5,7 +5,7 @@ Das Fenster für News-Jacking ist jetzt offen und schließt in etwa zwei bis dre
 
 ## 1. Positionierung
 
-**„Not the $960,000 one."** Wir verkaufen nicht das Original, wir verkaufen den Witz darüber, in gutem Leder.
+**„Not the $960,000 one."** Wir verkaufen nicht das Original, wir verkaufen den Witz darüber, in einer ordentlichen Jacke.
 Ehrlichkeit ist hier der Hook: Jeder weiß, dass es eine Kopie des Looks ist. Wer es zuerst sagt, gewinnt.
 
 Tonalität: trockene Pressemitteilungs-Sprache, die Jacke ist die Hauptfigur und hat eine eigene Pressestelle.
@@ -39,24 +39,24 @@ Englisch, weil die Zielgruppe (Tech-Twitter, LinkedIn-AI-Bubble, Reddit) global 
 **X, Folgeposts (einer pro Tag)**
 > No interim jacket has been appointed.
 
-> The original sold for $960,000. Ours is €289. We checked the math. You're welcome.
+> The original sold for $960,000. Ours is €149. We checked the math. You're welcome.
 
 > Leadership transitions are hard. Zippers are not.
 
 > The jacket has been asked to appear on December 1. The jacket will be appearing on your shoulders instead.
 
-> Shipping in 6–8 weeks, which is still faster than your GPU allocation.
+> Shipping in 4–6 weeks, which is still faster than your GPU allocation.
 
 **LinkedIn (Satire auf LinkedIn-Prosa)**
 > I'm humbled to announce that I've been wearing the same black leather jacket for 3 days.
 > Here's what it taught me about leadership:
 > 1. Consistency scales.
 > 2. Nobody asks about your slides if the jacket is good.
-> 3. It was €289.
+> 3. It was €149.
 > Agree? 👇 (Not affiliated with anyone. Especially not right now.)
 
 **Reddit** (r/nvidia, r/wallstreetbets, r/hardware — Regeln lesen, als Meme posten, Link nur im Kommentar, wenn erlaubt)
-> Title: "Portfolio is down, so I'm diversifying into lambskin"
+> Title: "Portfolio is down, so I'm diversifying into outerwear"
 > Bild: Depot-Screenshot neben Jacke.
 
 **TikTok / Reels / Shorts (3 Skripte, je 15 s)**
@@ -105,35 +105,35 @@ Zielwerte: CTR über 1,5 %, Klick unter 0,60 €, CAC unter 40 €. Motiv nach 2
 Ads ohne Namen und Gesicht realer Personen und ohne Bezug auf die Vorwürfe, sonst lehnen die Plattformen ab.
 
 Anzeigentexte:
-- „The original: $960,000. This one: €289. Same entrance."
-- „Makes any sentence sound like a roadmap. Black lambskin, made to order."
+- „The original: $960,000. This one: €149. Same entrance."
+- „Makes any sentence sound like a roadmap. Black moto jacket, small batches."
 - „Batch 01: 100 jackets. Then we close the order book."
 
 ## 7. Sourcing
 
-Die Preise unten sind Listenpreise aus einer ersten Suche, kein Angebot. Vor jeder Zusage Muster bestellen.
+Referenzprodukt (vom Chef gefunden, 14.11.): „Winter-Lederjacke" bei larkandrowan.com, 73,95 € Endkundenpreis, schwarz, Stehkragen, gesteppte Schultern.
+Die Produktseite war von hier aus nicht abrufbar, Material und Lieferzeit sind deshalb **ungeprüft**. Bei diesem Preis ist es sehr wahrscheinlich Kunstleder (PU); die Seite ist vorläufig darauf getextet.
 
-| Quelle | Richtpreis | Mindestmenge | Anmerkung |
-|---|---|---|---|
-| Alibaba, Hersteller Pakistan (Sialkot) | ca. 64–68 $ | 10 Stück | Lammleder, Listing war Blazer-Schnitt; Biker-Schnitt als Custom anfragen |
-| Alibaba, Hersteller China | ca. 35–37 $ | 100 Stück | PU oder Echtleder, Leder-Art unklar |
-| Sourcing-Verzeichnis, China, dropshipping-fähig | ca. 129 $ | niedrig | Lammleder-Bomber, Einzelversand möglich |
-| Faire (EU-Großhandel) | ab 150 $ Mindestbestellwert | – | schnell, aber kein Dropshipping |
+| Weg | Einkauf | Anmerkung |
+|---|---|---|
+| A. Im Shop zum Endkundenpreis kaufen und weiterverkaufen | 73,95 € | Schnellster Test, aber dünne Marge und fremde Lieferzeit |
+| B. Dieselbe Jacke beim Großhändler (Alibaba/AliExpress, Bildersuche mit dem Produktfoto) | geschätzt 25–40 € | Übliche Quelle solcher Shops; Preis erst nach Angebot sicher |
+| C. Echtleder vom Hersteller (Pakistan, Listenpreis ca. 64–68 $ ab 10 Stück) | ca. 60–65 € | Nur wenn die Seite wieder auf Echtleder und einen höheren Preis umgestellt wird |
 
-Empfehlung: Sialkot-Hersteller mit Made-to-Order ab 10 Stück. Das passt zur Aussage „handgefertigt nach Bestellung" und bindet kein Kapital.
+Empfehlung: ein Muster über Weg A bestellen (Qualität, Etikett, echte Fotos), parallel Weg B anfragen. Erst mit Weg B rechnet sich bezahlte Werbung.
 
-Anfrage-Checkliste: Lederart und -stärke, Futter, YKK-Reißverschlüsse, Größentabelle in cm, Produktionszeit, eigenes neutrales Label, **keine fremden Marken-Labels**, Musterpreis, Incoterms (DDP bevorzugt).
+Regeln: keine Fotos des Lieferanten oder von Lark & Rowan übernehmen (Urheberrecht), eigene Fotos vom Muster machen. Materialangabe laut Etikett, nicht „Leder", wenn es PU ist. Nichts als „handgefertigt" bezeichnen, was es nicht ist.
 
-## 8. Kalkulation pro Stück (bei 289 € brutto)
+## 8. Kalkulation pro Stück (bei 149 € brutto)
 
-| Posten | € |
-|---|---|
-| Netto-Erlös (289 abzüglich 20 % USt AT) | 240,80 |
-| Jacke ab Werk | −65 bis −120 |
-| Fracht, Zoll (ca. 4 %), Verpackung | −30 bis −40 |
-| Zahlungsgebühren (ca. 3 %) | −9 |
-| Retouren-Rücklage (10 %) | −24 |
-| **Deckungsbeitrag vor Werbung** | **ca. 50 bis 110** |
+| Posten | Weg A | Weg B |
+|---|---|---|
+| Netto-Erlös (149 € abzüglich 20 % USt AT) | 124,20 | 124,20 |
+| Jacke | −73,95 | −25 bis −40 |
+| Versand an Kunden, Verpackung | −8 | −8 |
+| Zahlungsgebühren (ca. 3 %) | −4,50 | −4,50 |
+| Retouren-Rücklage (10 %) | −12,40 | −12,40 |
+| **Deckungsbeitrag vor Werbung** | **ca. 25 €** | **ca. 60–75 €** |
 
-Bei 40 € CAC bleibt im schlechten Fall kaum etwas übrig. Deshalb: organisch zuerst, und der Preis nach Batch 01 auf 349 €.
-Einfuhrumsatzsteuer ist als Vorsteuer abziehbar; bei Versand in andere EU-Länder OSS-Regelung beachten.
+Mit Weg A trägt sich keine bezahlte Werbung (Ziel-CAC 40 €). Organisch testen mit A, skalieren nur mit B.
+Bei Weg A ist die Vorsteuer nur mit ordentlicher Rechnung abziehbar; bei Versand in andere EU-Länder OSS-Regelung beachten.

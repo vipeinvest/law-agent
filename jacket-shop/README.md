@@ -20,7 +20,7 @@ Vor dem Launch am besten in ein eigenes Repo verschieben.
 
 - [ ] Impressum im Footer ausfüllen, Datenschutzerklärung + AGB + Widerrufsbelehrung verlinken
 - [ ] Lieferant fix, Muster in der Hand, **echte Produktfotos** statt der SVG-Platzhaltergrafik
-- [ ] Materialangaben auf der Seite stimmen mit dem Muster überein (Lammleder, Futter)
+- [ ] Materialangaben auf der Seite stimmen mit dem Muster überein (Obermaterial, Futter)
 - [ ] Lieferzeit in `CONFIG.leadTime` ist realistisch (Produktion + Versand + Puffer)
 - [ ] `CONFIG.batchSize` ist die echte Obergrenze — keine erfundene Verknappung
 
