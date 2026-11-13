@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Keynote Jacket — not the $960,000 one</title>
+<meta name="description" content="A black moto jacket inspired by the most famous jacket in tech. Ordered in small batches. Unofficial, unaffiliated, unbothered.">
+<meta property="og:title" content="The Keynote Jacket — it never resigned.">
+<meta property="og:description" content="The original sold for $960,000. Ours is €149 and ships in a box. Batch 01 pre-order open.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{--bg:#0a0a0a;--panel:#141414;--line:#262626;--ink:#f4f1ea;--mute:#9a968c;--acc:#c6ff3d;--acc-ink:#0a0a0a}
+*{box-sizing:border-box;margin:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font:17px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+.wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+.ticker{background:var(--acc);color:var(--acc-ink);font:700 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;overflow:hidden;white-space:nowrap;padding:10px 0}
+.ticker span{display:inline-block;padding-left:100%;animation:tick 38s linear infinite}
+@keyframes tick{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.ticker span{animation:none;padding-left:20px}}
+nav{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+.logo{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:14px}
+.logo i{color:var(--acc);font-style:normal}
+.btn{display:inline-block;background:var(--acc);color:var(--acc-ink);font-weight:800;text-decoration:none;padding:15px 26px;border-radius:999px;border:0;font-size:16px;cursor:pointer;transition:transform .12s}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.sm{padding:10px 18px;font-size:14px}
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center;padding:40px 0 70px}
+h1{font-size:clamp(42px,7.4vw,88px);line-height:.95;letter-spacing:-.035em;font-weight:900;text-wrap:balance}
+h1 em{font-style:normal;color:var(--acc)}
+.lede{color:var(--mute);font-size:19px;max-width:34em;margin:22px 0 28px}
+.cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.price{font:700 15px ui-monospace,Menlo,monospace;color:var(--mute);margin-top:16px}
+.price b{color:var(--ink);font-size:22px}
+.art{background:radial-gradient(circle at 50% 35%,#1f1f1f,#0a0a0a 70%);border:1px solid var(--line);border-radius:28px;padding:24px;position:relative}
+.art svg{width:100%;height:auto;display:block}
+.tag{position:absolute;top:18px;right:18px;background:var(--ink);color:#000;font:800 11px ui-monospace,monospace;letter-spacing:.08em;padding:7px 10px;border-radius:6px;transform:rotate(4deg)}
+section{padding:64px 0;border-top:1px solid var(--line)}
+h2{font-size:clamp(28px,4.4vw,46px);letter-spacing:-.025em;line-height:1.05;margin-bottom:26px;text-wrap:balance}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:26px}
+.card.hot{border-color:var(--acc)}
+.card h3{font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute);margin-bottom:10px}
+.card .big{font-size:40px;font-weight:900;letter-spacing:-.03em}
+.card ul{list-style:none;padding:0;margin-top:14px;color:var(--mute)}
+.card li{padding:7px 0;border-top:1px solid var(--line)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.grid3 .card b{display:block;font-size:19px;margin-bottom:6px}
+.grid3 .card p{color:var(--mute);font-size:15.5px}
+.steps{counter-reset:s;display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.steps div{counter-increment:s;border-top:2px solid var(--acc);padding-top:14px;color:var(--mute);font-size:15.5px}
+.steps div::before{content:"0" counter(s);display:block;font:800 13px ui-monospace,monospace;color:var(--acc);margin-bottom:6px}
+.steps b{color:var(--ink);display:block}
+form{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}
+input[type=email],select{flex:1 1 220px;background:#000;border:1px solid var(--line);color:var(--ink);padding:15px 18px;border-radius:999px;font-size:16px}
+input:focus,select:focus{outline:2px solid var(--acc);outline-offset:2px}
+.consent{flex-basis:100%;font-size:13.5px;color:var(--mute);display:flex;gap:8px;align-items:flex-start}
+.msg{margin-top:14px;font-weight:700}
+.share{display:none;margin-top:18px;background:var(--panel);border:1px dashed var(--acc);border-radius:16px;padding:18px}
+.share code{display:block;word-break:break-all;color:var(--acc);margin:8px 0 12px}
+details{border-top:1px solid var(--line);padding:16px 0}
+summary{cursor:pointer;font-weight:700;font-size:18px}
+details p{color:var(--mute);margin-top:10px;max-width:46em}
+footer{padding:40px 0 60px;border-top:1px solid var(--line);color:var(--mute);font-size:13.5px}
+footer p{max-width:60em;margin-bottom:10px}
+@media (max-width:820px){.hero{grid-template-columns:1fr;padding-top:16px}.cmp,.grid3{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+
+<div class="ticker" aria-hidden="true"><span id="ticker"></span></div>
+
+<div class="wrap">
+<nav>
+  <div class="logo">Keynote<i>/</i>Jacket</div>
+  <a class="btn sm" href="#order">Pre-order</a>
+</nav>
+
+<header class="hero">
+  <div>
+    <h1>CEOs come and go. <em>The jacket stays.</em></h1>
+    <p class="lede">A black moto jacket inspired by the most famous piece of outerwear in tech. Ordered in small batches, one batch at a time. No GPU allocation required.</p>
+    <div class="cta">
+      <a class="btn" id="buy" href="#order">Pre-order Batch 01</a>
+      <a class="btn ghost" href="#waitlist">Join the waitlist</a>
+    </div>
+    <p class="price"><b id="price">€149</b> pre-order &nbsp;·&nbsp; <span id="later">€179</span> after Batch 01 &nbsp;·&nbsp; ships in <span id="lead">4–6 weeks</span></p>
+  </div>
+  <div class="art">
+    <div class="tag">STILL IN OFFICE</div>
+    <!-- Placeholder illustration. Replace with real product photos of the actual jacket before taking money. -->
+    <svg viewBox="0 0 400 440" role="img" aria-label="Illustration of a black biker jacket">
+      <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#2b2b2b"/><stop offset="1" stop-color="#0d0d0d"/></linearGradient></defs>
+      <path d="M140 40 L200 78 L260 40 L318 70 L372 190 L330 214 L312 170 L312 400 L88 400 L88 170 L70 214 L28 190 L82 70 Z" fill="url(#g)" stroke="#3a3a3a" stroke-width="2"/>
+      <path d="M140 40 L200 78 L176 150 L128 96 Z" fill="#1c1c1c" stroke="#3a3a3a" stroke-width="2"/>
+      <path d="M260 40 L200 78 L224 150 L272 96 Z" fill="#1c1c1c" stroke="#3a3a3a" stroke-width="2"/>
+      <path d="M200 78 L218 400" stroke="#c6ff3d" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>
+      <path d="M112 300 L168 286" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+      <path d="M288 300 L240 288" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+      <path d="M118 210 L158 200" stroke="#555" stroke-width="3" stroke-linecap="round"/>
+      <rect x="88" y="378" width="224" height="22" fill="#161616" stroke="#3a3a3a" stroke-width="2"/>
+      <circle cx="236" cy="389" r="5" fill="#c6ff3d"/>
+    </svg>
+  </div>
+</header>
+</div>
+
+<section><div class="wrap">
+  <h2>Let's be honest about what this is.</h2>
+  <div class="cmp">
+    <div class="card">
+      <h3>The original</h3>
+      <div class="big">$960,000</div>
+      <ul><li>Sold at auction, July 2026</li><li>Exactly one exists</li><li>Worn on stage, signed</li><li>You don't have it. Neither do we.</li></ul>
+    </div>
+    <div class="card hot">
+      <h3>The Keynote Jacket</h3>
+      <div class="big" id="price2">€149</div>
+      <ul><li>Inspired by it. Not it. Not pretending.</li><li>Black vegan leather, stand collar, quilted shoulders</li><li>Comes in your size</li><li>0.02% of the price, 100% of the entrance</li></ul>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Specs, since you're that kind of buyer.</h2>
+  <div class="grid3">
+    <div class="card"><b>Vegan leather shell</b><p>Matte black PU with a soft hand. Wipes clean. Thermal design power: you.</p></div>
+    <div class="card"><b>Racer cut</b><p>Stand collar, quilted shoulders, three zip pockets. Works over a black tee. It always did.</p></div>
+    <div class="card"><b>Small batches</b><p>Ordered per batch once it closes. No warehouse of leftovers.</p></div>
+    <div class="card"><b>Sizes XS–XXL</b><p>Size chart before checkout. One free size exchange per order.</p></div>
+    <div class="card"><b>Inference-ready</b><p>Makes any sentence sound like a roadmap. Results on stage may vary.</p></div>
+    <div class="card"><b>14-day returns</b><p>EU right of withdrawal applies. Unworn, tags on, full refund.</p></div>
+  </div>
+</div></section>
+
+<section id="order"><div class="wrap">
+  <h2>How pre-order works.</h2>
+  <div class="steps">
+    <div><b>You order</b>Pick a size, pay at checkout. Batch 01 is limited to <span id="batch">100</span> pieces.</div>
+    <div><b>Batch closes</b>We place the batch order with our supplier.</div>
+    <div><b>It gets made</b>Production and quality check. You get progress mails.</div>
+    <div><b>It ships</b>Tracked, within <span id="lead2">4–6 weeks</span> of your order. Late? Cancel for a full refund.</div>
+  </div>
+  <p style="margin-top:30px"><a class="btn" id="buy2" href="#waitlist">Pre-order Batch 01</a></p>
+</div></section>
+
+<section id="waitlist"><div class="wrap">
+  <h2>Not ready? Get on the list.</h2>
+  <p class="lede" style="margin-top:-8px">Batch 02 access, price lock at the pre-order price, and the occasional jacket-related press statement.</p>
+  <form id="wl">
+    <input type="email" name="email" required placeholder="you@company.ai" autocomplete="email" aria-label="Email">
+    <select name="size" aria-label="Size"><option value="">Size (optional)</option><option>XS</option><option>S</option><option>M</option><option>L</option><option>XL</option><option>XXL</option></select>
+    <button class="btn" type="submit">Join waitlist</button>
+    <label class="consent"><input type="checkbox" name="consent" required> <span>Yes, email me about the Keynote Jacket. I can unsubscribe any time. See <a href="#legal">privacy note</a>.</span></label>
+    <input type="text" name="company" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+  </form>
+  <p class="msg" id="msg" role="status"></p>
+  <div class="share" id="share">
+    <b>You're in. Move up the list:</b> every friend who joins through your link moves you up. Top 10 referrers get Batch 02 at cost.
+    <code id="reflink"></code>
+    <button class="btn sm" id="copy" type="button">Copy link</button>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Questions the jacket gets.</h2>
+  <details><summary>Is this the real one?</summary><p>No. The real one was auctioned for $960,000. This is an independent jacket inspired by that look. We are not affiliated with, endorsed by, or connected to any person or company. Different maker, different label, same energy.</p></details>
+  <details><summary>Why does it take 4–6 weeks?</summary><p>Because we order per batch instead of filling a warehouse. Each batch is ordered after it closes. You'll get a mail when the order is placed and when it ships. If we miss the date, you can cancel for a full refund.</p></details>
+  <details><summary>What if it doesn't fit?</summary><p>One free size exchange, or return it within 14 days of delivery for a refund.</p></details>
+  <details><summary>Is it real leather?</summary><p>No. It's vegan leather (PU), which is how it costs €149 and not $960,000. The exact shell and lining spec is on the product sheet you get before checkout.</p></details>
+  <details><summary>Does the jacket have a comment on recent events?</summary><p>The jacket does not comment on personnel matters. The jacket remains fully committed to its long-term roadmap of looking good.</p></details>
+</div></section>
+
+<footer id="legal"><div class="wrap">
+  <p><b>Unofficial product. Parody.</b> The Keynote Jacket is an independent product. It is not affiliated with, sponsored by, or endorsed by NVIDIA Corporation, Jensen Huang, Tom Ford, or Sotheby's. All trademarks belong to their owners. It is not a replica of any branded product and carries no third-party logos or labels.</p>
+  <p><b>Privacy.</b> Waitlist emails are used only for Keynote Jacket updates, stored with our database provider, and deleted on request. Double opt-in applies.</p>
+  <p id="imprint"><b>Imprint.</b> [Company name · address · email · UID — required before launch]</p>
+</div></footer>
+
+<script>
+// ---- Config: fill these in. See README.md ----
+const CONFIG = {
+  checkoutUrl: "",          // Stripe Payment Link, e.g. https://buy.stripe.com/...
+  supabaseUrl: "",          // https://xxxx.supabase.co
+  supabaseAnonKey: "",      // publishable key
+  price: "€149", priceLater: "€179", leadTime: "4–6 weeks", batchSize: 100,
+  // Topical lines. Keep them about the jacket; edit as the news moves.
+  ticker: [
+    "Breaking: the jacket has not resigned",
+    "Leadership changes. The jacket doesn't",
+    "The only part of the keynote with zero volatility",
+    "No interim jacket has been appointed",
+    "The jacket declines to comment and continues to fit",
+    "Batch 01 pre-order now open",
+  ],
+};
+
+const $ = id => document.getElementById(id);
+$("ticker").textContent = CONFIG.ticker.join("   ///   ") + "   ///   ";
+["price","price2"].forEach(i => $(i).textContent = CONFIG.price);
+$("later").textContent = CONFIG.priceLater;
+["lead","lead2"].forEach(i => $(i).textContent = CONFIG.leadTime);
+$("batch").textContent = CONFIG.batchSize;
+
+const params = new URLSearchParams(location.search);
+const ref = params.get("ref") || "";
+const utm = ["utm_source","utm_medium","utm_campaign"].map(k => params.get(k) || "").join("|");
+
+// Checkout buttons go to Stripe when configured, otherwise to the waitlist.
+if (CONFIG.checkoutUrl) ["buy","buy2"].forEach(i => {
+  $(i).href = CONFIG.checkoutUrl + (ref ? "?client_reference_id=" + encodeURIComponent(ref) : "");
+});
+
+$("wl").addEventListener("submit", async e => {
+  e.preventDefault();
+  const f = new FormData(e.target), msg = $("msg");
+  if (f.get("company")) return; // honeypot
+  const code = Math.random().toString(36).slice(2, 9);
+  const row = { email: String(f.get("email")).trim().toLowerCase(), size: f.get("size") || null,
+                ref_code: code, referred_by: ref || null, utm };
+  if (!CONFIG.supabaseUrl) { msg.textContent = "Waitlist backend not connected yet (see README)."; return; }
+  msg.textContent = "…";
+  try {
+    const r = await fetch(CONFIG.supabaseUrl + "/rest/v1/waitlist", {
+      method: "POST",
+      headers: { apikey: CONFIG.supabaseAnonKey, Authorization: "Bearer " + CONFIG.supabaseAnonKey,
+                 "Content-Type": "application/json", Prefer: "return=minimal" },
+      body: JSON.stringify(row),
+    });
+    if (!r.ok && r.status !== 409) throw new Error(r.status);
+    msg.textContent = r.status === 409 ? "You're already on the list." : "";
+    if (r.status !== 409) {
+      $("reflink").textContent = location.origin + location.pathname + "?ref=" + code;
+      $("share").style.display = "block";
+      e.target.reset();
+    }
+  } catch { msg.textContent = "That didn't work. Try again in a minute."; }
+});
+$("copy").addEventListener("click", () => {
+  navigator.clipboard?.writeText($("reflink").textContent);
+  $("copy").textContent = "Copied";
+});
+</script>
+</body>
+</html>
